@@ -31,9 +31,10 @@
 #endif
 
 #ifndef SHADOWSYSCALL_DISABLE_EXCEPTIONS
-#define SHADOWSYSCALL_EXCEPTION_HANDLING true
-#else
+#include <stdexcept>
 #define SHADOWSYSCALL_EXCEPTION_HANDLING false
+#else
+#define SHADOWSYSCALL_EXCEPTION_HANDLING true
 #endif
 
 #if _HAS_CXX20
