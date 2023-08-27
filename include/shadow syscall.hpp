@@ -257,7 +257,7 @@ namespace shadow_syscall {
 	{
 		class intrin {
 		public:
-			static __forceinline std::int32_t _xor_(
+			static SHADOWSYSCALL_FORCEINLINE std::int32_t _xor_(
 				std::int32_t p, std::int32_t q) noexcept(true)
 			{
 				if (p == q) return 0;
@@ -266,7 +266,7 @@ namespace shadow_syscall {
 					_mm_and_si128(_mm_cvtsi32_si128(p), _mm_andnot_si128(_mm_cvtsi32_si128(q), _mm_set1_epi32(-1)))));
 			}
 
-			static __forceinline std::int32_t _add_(
+			static SHADOWSYSCALL_FORCEINLINE std::int32_t _add_(
 				std::int32_t p, std::int32_t q) noexcept(true)
 			{
 				return _mm_cvtsi128_si32(_mm_add_epi32(_mm_set1_epi32(p), _mm_set1_epi32(q)));
@@ -287,7 +287,7 @@ namespace shadow_syscall {
 				BASIS = 0x83127328u
 			};
 
-			static __forceinline constexpr size_t ct_strlen(const char* str, bool include_nullchar = false) noexcept(true)
+			static SHADOWSYSCALL_FORCEINLINE constexpr size_t ct_strlen(const char* str, bool include_nullchar = false) noexcept(true)
 			{
 				size_t out{};
 
@@ -300,7 +300,7 @@ namespace shadow_syscall {
 			}
 
 		public:
-			static __forceinline SHADOWSYSCALL_CONSTEVAL hash32_t get_ct(const char* str, const size_t counter) noexcept(true)
+			static SHADOWSYSCALL_FORCEINLINE SHADOWSYSCALL_CONSTEVAL hash32_t get_ct(const char* str, const size_t counter) noexcept(true)
 			{
 				hash32_t out{ BASIS };
 				size_t   len{ ct_strlen(str) };
@@ -311,12 +311,12 @@ namespace shadow_syscall {
 				return out;
 			}
 
-			static __forceinline const hash32_t get_rt(const char* str, size_t counter) noexcept(true)
+			static SHADOWSYSCALL_FORCEINLINE const hash32_t get_rt(const char* str, size_t counter) noexcept(true)
 			{
 				hash32_t out{ BASIS };
 				size_t   len{ ct_strlen(str) };
 #ifndef SHADOWSYSCALL_DISABLE_INTRIN_HASH
-				for (size_t i {}; i < len; ++i)
+				for (size_t i{}; i < len; ++i)
 					out = str[i] + math::intrin::_add_(math::intrin::_xor_(out, str[i]), (counter + i) * str[i]) *
 					(math::intrin::_xor_(PRIME, (i == 0 ? counter : i)));
 #else
@@ -428,7 +428,7 @@ namespace shadow_syscall {
 			uint32_t* function_rva = reinterpret_cast<uint32_t*>(module_base + ::shadow_syscall::utils::image_export_dir(module_base)->AddressOfFunctions);
 			uint16_t* ordinal_names = reinterpret_cast<uint16_t*>(module_base + ::shadow_syscall::utils::image_export_dir(module_base)->AddressOfNameOrdinals);
 
-			for (size_t i {}; i < ::shadow_syscall::utils::image_export_dir(module_base)->NumberOfNames; ++i)
+			for (size_t i{}; i < ::shadow_syscall::utils::image_export_dir(module_base)->NumberOfNames; ++i)
 			{
 				const auto export_name = (const char*)(module_base + rva_names[i]);
 
@@ -531,7 +531,7 @@ namespace shadow_syscall {
 			static SHADOWSYSCALL_FORCEINLINE auto syscall_redirection(
 				_Args... args) -> void*
 			{
-				using pack_args = void*(__stdcall*)(_Args...);
+				using pack_args = void* (__stdcall*)(_Args...);
 				auto fn = reinterpret_cast<pack_args>(&::shadow_syscall::masm::asm_syscall);
 				return fn(args...);
 			}
