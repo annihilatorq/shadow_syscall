@@ -17,7 +17,6 @@ NTSTATUS status = shadowsyscall(NTSTATUS, NtTerminateProcess, (HANDLE)-1, 0);
 - Compile-time hashing export.
 - Runtime hash based on intrins.
 - Doesn't leave any imports in the executable.
-- Randomized hash seed based on compilation time.
 
 ## Documentation
 
