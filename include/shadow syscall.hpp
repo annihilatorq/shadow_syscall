@@ -57,10 +57,7 @@
 #define IMAGE_NT_OPTIONAL_HDR64_MAGIC   0x20b
 #endif
 
-#define HASH_SEED (__TIME__[1] + __TIME__[2] + \
-                __TIME__[3] + __TIME__[4] + \
-                __TIME__[5] + __TIME__[7] + \
-                __TIME__[8])
+#define HASH_SEED 306
 
 #define hash_ct_shadowsyscall(str) []() { constexpr shadow_syscall::hash::hash32_t hash { shadow_syscall::hash::FNV1a::get_ct(str, HASH_SEED) }; return hash; }()
 
