@@ -11,7 +11,8 @@
 *  again for the desired export in the list of modules and their exports.
 *  To disable this feature, apply #define SHADOWSYSCALL_NO_CACHING,
 *  but you should realize that the speed of repeated calls will slow
-*  down considerably.
+*  down considerably. Caching calls is about 55 times faster than
+*  no caching.
 */
 
 #ifndef _SHADOW_SYSCALLS_
@@ -57,14 +58,15 @@
 #define IMAGE_NT_OPTIONAL_HDR64_MAGIC   0x20b
 #endif
 
-#define HASH_SEED 306
+#define HASH_SEED 1209689126
 
-#define hash_ct_shadowsyscall(str) []() { constexpr shadow_syscall::hash::hash32_t hash { shadow_syscall::hash::FNV1a::get_ct(str, HASH_SEED) }; return hash; }()
+#define shadowsyscall_hashct(str) []() { constexpr uint32_t hash { shadow_syscall::hash::FNV1a::compiletime_hash(str, HASH_SEED) }; return hash; }()
+#define shadowsyscall_hashrt(str) shadow_syscall::hash::FNV1a::runtime_hash(str, HASH_SEED)
 
-#define hash_rt_shadowsyscall(str) shadow_syscall::hash::FNV1a::get_rt(str, HASH_SEED)
+#define shadowsyscall(type, export_name) [&]() { constexpr uint32_t hash { shadow_syscall::hash::FNV1a::compiletime_hash(#export_name, HASH_SEED) }; \
+		return ::shadow_syscall::internals::shadowsyscall_internals<type>(hash); }()
 
-#define shadowsyscall(type, export_name, ...) [&]() { constexpr shadow_syscall::hash::hash32_t hash { shadow_syscall::hash::FNV1a::get_ct(#export_name, HASH_SEED) }; \
-		return shadow_syscall::invoke::shadow_syscall_create<type>(hash, __VA_ARGS__); }()
+#define shadowsyscall_(type, export_name, ...) [&]() { return shadowsyscall(type, export_name).invoke(__VA_ARGS__); }()
 
 namespace shadow_syscall {
 	namespace nt {
@@ -250,6 +252,7 @@ namespace shadow_syscall {
 		} IMAGE_NT_HEADERS64, * PIMAGE_NT_HEADERS64;
 	}
 
+#ifndef SHADOWSYSCALL_DISABLE_INTRIN_HASH
 	namespace math
 	{
 		class intrin {
@@ -259,22 +262,30 @@ namespace shadow_syscall {
 			{
 				if (p == q) return 0;
 
+#ifndef SHADOWSYSCALL_USE_AVX_INTRINS
 				return _mm_cvtsi128_si32(_mm_or_si128(_mm_andnot_si128(_mm_cvtsi32_si128(p), _mm_cvtsi32_si128(q)),
 					_mm_and_si128(_mm_cvtsi32_si128(p), _mm_andnot_si128(_mm_cvtsi32_si128(q), _mm_set1_epi32(-1)))));
+#else
+				return _mm_cvtsi128_si32(_mm256_castsi256_si128(_mm256_or_si256(_mm256_andnot_si256(_mm256_set1_epi32(p),
+					_mm256_set1_epi32(q)), _mm256_andnot_si256(_mm256_set1_epi32(q), _mm256_set1_epi32(p)))));
+#endif
 			}
 
 			static SHADOWSYSCALL_FORCEINLINE std::int32_t _add_(
 				std::int32_t p, std::int32_t q) noexcept(true)
 			{
+#ifndef SHADOWSYSCALL_USE_AVX_INTRINS
 				return _mm_cvtsi128_si32(_mm_add_epi32(_mm_set1_epi32(p), _mm_set1_epi32(q)));
+#else
+				return _mm_cvtsi128_si32(_mm256_castsi256_si128(_mm256_add_epi32(_mm256_set1_epi32(p), _mm256_set1_epi32(q))));
+#endif
 			}
 		};
 	}
+#endif
 
 	namespace hash
 	{
-		using hash32_t = uint32_t;
-
 		class FNV1a
 		{
 		private:
@@ -284,7 +295,7 @@ namespace shadow_syscall {
 				BASIS = 0x83127328u
 			};
 
-			static SHADOWSYSCALL_FORCEINLINE constexpr size_t ct_strlen(const char* str, bool include_nullchar = false) noexcept(true)
+			static SHADOWSYSCALL_FORCEINLINE constexpr size_t compiletime_strlen(const char* str, bool include_nullchar = false) noexcept(true)
 			{
 				size_t out{};
 
@@ -297,10 +308,10 @@ namespace shadow_syscall {
 			}
 
 		public:
-			static SHADOWSYSCALL_FORCEINLINE SHADOWSYSCALL_CONSTEVAL hash32_t get_ct(const char* str, const size_t counter) noexcept(true)
+			static SHADOWSYSCALL_FORCEINLINE SHADOWSYSCALL_CONSTEVAL uint32_t compiletime_hash(const char* str, const size_t counter) noexcept(true)
 			{
-				hash32_t out{ BASIS };
-				size_t   len{ ct_strlen(str) };
+				uint32_t out{ BASIS };
+				size_t   len{ compiletime_strlen(str) };
 
 				for (size_t i{}; i < len; ++i)
 					out = str[i] + ((out ^ str[i]) + (counter + i) * str[i]) * (PRIME ^ (i == 0 ? counter : i));
@@ -308,10 +319,10 @@ namespace shadow_syscall {
 				return out;
 			}
 
-			static SHADOWSYSCALL_FORCEINLINE const hash32_t get_rt(const char* str, size_t counter) noexcept(true)
+			static SHADOWSYSCALL_FORCEINLINE const uint32_t runtime_hash(const char* str, size_t counter) noexcept(true)
 			{
-				hash32_t out{ BASIS };
-				size_t   len{ ct_strlen(str) };
+				uint32_t out{ BASIS };
+				size_t   len{ compiletime_strlen(str) };
 #ifndef SHADOWSYSCALL_DISABLE_INTRIN_HASH
 				for (size_t i{}; i < len; ++i)
 					out = str[i] + math::intrin::_add_(math::intrin::_xor_(out, str[i]), (counter + i) * str[i]) *
@@ -380,7 +391,7 @@ namespace shadow_syscall {
 			return reinterpret_cast<uintptr_t>(table_entry->DllBase);
 		}
 
-		SHADOWSYSCALL_FORCEINLINE const ::shadow_syscall::nt::PEB_LDR_DATA* loader_data()
+		SHADOWSYSCALL_FORCEINLINE const ::shadow_syscall::nt::PEB_LDR_DATA* loader_data() noexcept(true)
 		{
 			return reinterpret_cast<const ::shadow_syscall::nt::PEB_LDR_DATA*>(get_ppeb()->LoaderData);
 		}
@@ -413,12 +424,10 @@ namespace shadow_syscall {
 #endif
 			}
 
-			if (::shadow_syscall::utils::nt_header(module_base)->OptionalHeader.Magic == IMAGE_NT_OPTIONAL_HDR64_MAGIC)
+			if (::shadow_syscall::utils::nt_header(module_base)->OptionalHeader.Magic == IMAGE_NT_OPTIONAL_HDR64_MAGIC &&
+				::shadow_syscall::utils::dos_header_empty(module_base))
 			{
-				if (::shadow_syscall::utils::dos_header_empty(module_base))
-				{
-					return 0;
-				}
+				return 0;
 			}
 
 			uint32_t* rva_names = reinterpret_cast<uint32_t*>(module_base + ::shadow_syscall::utils::image_export_dir(module_base)->AddressOfNames);
@@ -429,7 +438,7 @@ namespace shadow_syscall {
 			{
 				const auto export_name = (const char*)(module_base + rva_names[i]);
 
-				if (export_hash == ::shadow_syscall::hash::FNV1a::get_rt(export_name, HASH_SEED))
+				if (export_hash == ::shadow_syscall::hash::FNV1a::runtime_hash(export_name, HASH_SEED))
 				{
 					return static_cast<_Type>(module_base + function_rva[ordinal_names[i]]);
 				}
@@ -487,43 +496,56 @@ namespace shadow_syscall {
 
 	namespace internals
 	{
+		template <class _Type>
 		class shadowsyscall_internals
 		{
 		public:
-			SHADOWSYSCALL_FORCEINLINE shadowsyscall_internals(uint32_t export_hash) noexcept(false) : syscall_export_hash(export_hash)
+			SHADOWSYSCALL_FORCEINLINE shadowsyscall_internals(uint32_t export_hash) noexcept(true) : syscall_export_hash(export_hash)
 			{
 #ifndef SHADOWSYSCALL_NO_CACHING
-				if (::shadow_syscall::utils::map_element_exists<uintptr_t, int32_t>(
+				if (::shadow_syscall::utils::map_element_exists<uint32_t, int32_t>(
 					this->cached_calls, this->syscall_export_hash))
 				{
 					this->syscall_idx = cached_calls.at(this->syscall_export_hash);
 					return;
 				}
 #endif
+				insert_index();
+			}
 
-				auto export_addr = ::shadow_syscall::detail::get_export_by_hash<uintptr_t>(this->syscall_export_hash);
-				auto sys_index = ::shadow_syscall::detail::get_syscall_id_from_export_address(export_addr);
+			SHADOWSYSCALL_FORCEINLINE std::int32_t const syscall_index() noexcept(true)
+			{
+				return this->syscall_idx;
+			}
+
+			SHADOWSYSCALL_FORCEINLINE void insert_index() noexcept(true)
+			{
+				const auto export_addr = ::shadow_syscall::detail::get_export_by_hash<uintptr_t>(this->syscall_export_hash);
+				const auto sys_index = ::shadow_syscall::detail::get_syscall_id_from_export_address(export_addr);
 
 				this->syscall_idx = sys_index;
 
 #ifndef SHADOWSYSCALL_NO_CACHING
-				cached_calls.insert({ this->syscall_export_hash, this->syscall_idx });
+				cached_calls.insert({ this->syscall_export_hash, sys_index });
 #endif
 			}
 
-			template<class _Type, class... _Args>
-			SHADOWSYSCALL_FORCEINLINE _Type create_shadow_syscall(_Args... args) noexcept(true)
+			template<class... Args>
+			SHADOWSYSCALL_FORCEINLINE _Type invoke(
+				Args... arguments) noexcept(true)
+			{
+				return this->create_shadow_syscall(arguments...);
+			}
+
+		private:
+			template<class... _Args>
+			SHADOWSYSCALL_FORCEINLINE _Type create_shadow_syscall(
+				_Args... args) noexcept(true)
 			{
 				using arg_mapper = remap_args<sizeof...(_Args), void>;
 				return (_Type)arg_mapper::create_call(this->syscall_idx, args...);
 			}
 
-			SHADOWSYSCALL_FORCEINLINE bool validate_syscall_index()
-			{
-				return this->syscall_idx != 0;
-			}
-
-		private:
 			template <class... _Args>
 			static SHADOWSYSCALL_FORCEINLINE auto syscall_redirection(
 				_Args... args) -> void*
@@ -555,33 +577,13 @@ namespace shadow_syscall {
 				}
 			};
 
-			uintptr_t syscall_export_hash = 0;
+			uint32_t syscall_export_hash = 0;
 			int32_t syscall_idx = 0;
 
 #ifndef SHADOWSYSCALL_NO_CACHING
-			static inline std::map<uintptr_t, int32_t> cached_calls {};
+			static inline std::map<uint32_t, int32_t> cached_calls{};
 #endif
 		};
-	}
-
-	namespace invoke
-	{
-		template<class _Type, class... Args>
-		SHADOWSYSCALL_FORCEINLINE _Type shadow_syscall_create(std::uint32_t export_hash, Args... arguments) noexcept(SHADOWSYSCALL_EXCEPTION_HANDLING)
-		{
-			auto syscall_internal = ::shadow_syscall::internals::shadowsyscall_internals(export_hash);
-
-			if (!syscall_internal.validate_syscall_index())
-			{
-#ifndef SHADOWSYSCALL_DISABLE_EXCEPTIONS
-				throw std::runtime_error("Syscall index is null");
-#else
-				return 0;
-#endif
-			}
-
-			return syscall_internal.create_shadow_syscall<_Type>(arguments...);
-		}
 	}
 }
 
