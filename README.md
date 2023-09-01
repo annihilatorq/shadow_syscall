@@ -22,8 +22,8 @@ int main(void)
 {
     auto instance = shadowsyscall(NTSTATUS, NtTerminateProcess);
 
-    // insert index into the cache before executing syscall, unnecessarily
-    instance.insert_index();
+    // cache index before executing syscall, unnecessarily
+    instance.cache_index();
 
     // get NtTerminateProcess syscall index
     instance.syscall_index();
