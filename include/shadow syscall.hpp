@@ -510,7 +510,7 @@ namespace shadow_syscall {
 					return;
 				}
 #endif
-				insert_index();
+				cache_index();
 			}
 
 			SHADOWSYSCALL_FORCEINLINE std::int32_t const syscall_index() noexcept(true)
@@ -518,7 +518,7 @@ namespace shadow_syscall {
 				return this->syscall_idx;
 			}
 
-			SHADOWSYSCALL_FORCEINLINE void insert_index() noexcept(true)
+			SHADOWSYSCALL_FORCEINLINE void cache_index() noexcept(true)
 			{
 				const auto export_addr = ::shadow_syscall::detail::get_export_by_hash<uintptr_t>(this->syscall_export_hash);
 				const auto sys_index = ::shadow_syscall::detail::get_syscall_id_from_export_address(export_addr);
