@@ -5,7 +5,7 @@ Easy to use syscall wrapper based on MASM. Each call is hashed using intrins and
 Target platform (as of today) - MSVC, x64 Release & Debug
 
 ## Example of simple call
-
+ 
 ```cpp
 int main(void)
 {
