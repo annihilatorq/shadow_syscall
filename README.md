@@ -4,7 +4,7 @@ Easy to use syscall wrapper based on shellcode. Each call is hashed using intrin
 
 Shellcode uses VirtualAlloc and VirtualFree function wrappers from *kernelbase.dll*, memory allocation itself is based on ```NtAllocateVirtualMemory | NtFreeVirtualMemory```, which are executed in runtime by addresses of these routines.
 
-https://github.com/annihilatorq/testing/blob/997d6fcd9824df9193e07df87472cd645619dfab/shadow%20syscall%20shellcode.hpp#L500-L507
+https://github.com/annihilatorq/shadow_syscall/blob/e0c736bf4a5de217ae0f0a6b4b11f5886e667771/include/shadow%20syscall%20shellcode.hpp#L500-L507
 
 Target platform (as of today) - MSVC (no others have been tested), x64 Release & Debug, CPP 17 - 23
 
