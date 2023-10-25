@@ -10,6 +10,7 @@
 #include <cstdint>
 #include <intrin.h>
 #include <string>
+#include <vector>
 #include <map>
 
 #ifndef SHADOWSYSCALL_NO_FORCEINLINE
