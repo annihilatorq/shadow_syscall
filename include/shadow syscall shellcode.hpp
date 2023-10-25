@@ -493,7 +493,7 @@ namespace shadow_syscall {
 
 	namespace internals
 	{
-		LPVOID NtVirtualAlloc(uintptr_t NtAllocateVirtualMemoryAddr, LPVOID lpAddress, SIZE_T dwSize, DWORD flAllocationType, DWORD flProtect)
+		SHADOWSYSCALL_FORCEINLINE LPVOID NtVirtualAlloc(uintptr_t NtAllocateVirtualMemoryAddr, LPVOID lpAddress, SIZE_T dwSize, DWORD flAllocationType, DWORD flProtect)
 		{
 			PVOID BaseAddress = lpAddress;
 			ULONG_PTR RegionSize = dwSize;
@@ -513,7 +513,7 @@ namespace shadow_syscall {
 			return nullptr;
 		}
 
-		BOOL NtVirtualFree(uintptr_t NtFreeVirtualMemoryAddr, LPVOID lpAddress, SIZE_T dwSize, DWORD dwFreeType)
+		SHADOWSYSCALL_FORCEINLINE BOOL NtVirtualFree(uintptr_t NtFreeVirtualMemoryAddr, LPVOID lpAddress, SIZE_T dwSize, DWORD dwFreeType)
 		{
 			NTSTATUS Result = 0;
 			ULONG_PTR RegionSize = dwSize;
