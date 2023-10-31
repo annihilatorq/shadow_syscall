@@ -1,6 +1,7 @@
 # shadow syscalls [![](https://img.shields.io/badge/version-1.0.1-green.svg)]()
 
 Easy to use syscall wrapper based on MASM. Each call is hashed using intrins and is not reverse-engineer friendly.
+Second repository branch - **shellcode** realization without **MASM**
 
 Target platform (as of today) - MSVC, x64 Release & Debug
 
