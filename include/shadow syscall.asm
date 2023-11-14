@@ -1,7 +1,9 @@
+; Credits to: https://www.unknowncheats.me/forum/c-and-c-/267587-comfy-direct-syscall-caller-x64.html
+
 public asm_syscall
  
 .code
- 
+
 asm_syscall proc
     mov r10, rcx
     pop rcx
