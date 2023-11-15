@@ -342,17 +342,6 @@ namespace shadow_syscall {
 
 	namespace utils
 	{
-		SHADOWSYSCALL_FORCEINLINE std::string wide_to_string(
-			wchar_t* buffer) noexcept
-		{
-			const std::wstring out(buffer);
-
-			if (out.empty())
-				return "";
-
-			return std::string(out.begin(), out.end());
-		}
-
 		SHADOWSYSCALL_FORCEINLINE const ::shadow_syscall::PE::PEB* get_ppeb() noexcept
 		{
 			return reinterpret_cast<::shadow_syscall::PE::PEB*>(__readgsqword(0x60));
