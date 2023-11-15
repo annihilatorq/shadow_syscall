@@ -49,7 +49,7 @@ int main(void)
 - Ability to switch between SSE and AVX intrins.
 
 ## 📜 What's a syscall?
-![image](https://github.com/annihilatorq/shadow_syscall/assets/143023834/41db77b2-7fdb-4e5f-a0a1-d266504da9e5)
+![syscall_architecture](https://github.com/annihilatorq/shadow_syscall/assets/143023834/63f46089-a590-4c6b-aa60-447b536ece34)
 
 ## ⏲️ Benchmarks - call caching
 Each test calculates the average of 100 syscalls to the same nt-api.
