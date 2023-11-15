@@ -62,9 +62,9 @@ Map-cached calls, the result: 0.72ms  -  1.12ms per call.  70.2ms per hundred ca
 Non-cached calls, the result: 38.54ms - 52.61ms per call.  3854ms per hundred calls.
 ```
 
-The difference between call caching and regular call is obvious, the whole point is that when caching calls - the syscall index is stored in the `std::map` container, then the first thing is to check the presence of the index by the necessary hash when calling the syscall.
+The difference between call caching and regular call is obvious, the whole point is that when caching calls - the syscall index is stored in the `std::unordered_map` container, then the first thing is to check the presence of the index by the necessary hash when calling the syscall.
 
-If the corresponding syscall index is found by hash in `std::map`, then rolling up the list of modules and their exports through PEB is not required, thus we eliminate several cycles before making the call itself. This is how we achieve such performance.
+If the corresponding syscall index is found by hash in `std::unordered_map`, then rolling up the list of modules and their exports through PEB is not required, thus we eliminate several cycles before making the call itself. This is how we achieve such performance.
 
 ## 📄 Documentation
 
