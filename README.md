@@ -2,10 +2,6 @@
 
 Easy to use syscall wrapper based on shellcode. Each call is hashed using intrins and is not reverse-engineer friendly.
 
-Shellcode uses VirtualAlloc and VirtualFree function wrappers from *kernelbase.dll*, memory allocation itself is based on ```NtAllocateVirtualMemory | NtFreeVirtualMemory```, which are executed in runtime by addresses of these routines.
-
-https://github.com/annihilatorq/shadow_syscall/blob/e0c736bf4a5de217ae0f0a6b4b11f5886e667771/include/shadow%20syscall%20shellcode.hpp#L500-L507
-
 Target platform (as of today) - MSVC (no others have been tested), x64 Release & Debug, CPP 17 - 23
 
 ## Simple example
@@ -18,6 +14,10 @@ int main(void)
     return EXIT_SUCCESS;
 }
 ```
+
+Shellcode uses VirtualAlloc and VirtualFree function wrappers from *kernelbase.dll*, memory allocation itself is based on ```NtAllocateVirtualMemory | NtFreeVirtualMemory```, which are executed in runtime by addresses of these routines.
+
+https://github.com/annihilatorq/shadow_syscall/blob/e0c736bf4a5de217ae0f0a6b4b11f5886e667771/include/shadow%20syscall%20shellcode.hpp#L500-L507
 
 ## Detailed example
 
@@ -52,7 +52,7 @@ int main(void)
 - Ability to switch between SSE and AVX intrins.
 
 ## 📜 What's a syscall?
-![syscall_explain](https://github.com/annihilatorq/testing/assets/143023834/7ddeecdf-22f2-4d3a-a145-00b9f35bd5fe)
+![syscall_architecture](https://github.com/annihilatorq/shadow_syscall/assets/143023834/63f46089-a590-4c6b-aa60-447b536ece34)
 
 ## ⏲️ Benchmarks - call caching
 Each test calculates the average of 100 syscalls to the same nt-api.
