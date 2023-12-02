@@ -1,4 +1,4 @@
-# shadow syscalls [![](https://img.shields.io/badge/version-1.0.1-green.svg)]()
+# shadow syscalls
 
 Easy to use syscall wrapper based on shellcode. Each call is hashed using intrins and is not reverse-engineer friendly.
 
@@ -11,7 +11,7 @@ shadowsyscall(NTSTATUS, NtTerminateProcess).call((HANDLE)0xDEADC0DE, -1);
 
 Shellcode uses VirtualAlloc and VirtualFree function wrappers from *kernelbase.dll*, memory allocation itself is based on ```NtAllocateVirtualMemory | NtFreeVirtualMemory```, which are executed in runtime by addresses of these routines.
 
-https://github.com/annihilatorq/shadow_syscall/blob/e0c736bf4a5de217ae0f0a6b4b11f5886e667771/include/shadow%20syscall%20shellcode.hpp#L500-L507
+[https://github.com/annihilatorq/shadow_syscall/blob/e0c736bf4a5de217ae0f0a6b4b11f5886e667771/include/shadow%20syscall%20shellcode.hpp#L500-L507](https://github.com/annihilatorq/shadow_syscall/blob/36a7c7cd3be1102f1174f46657c2434a702b95f4/include/shadow%20syscall%20shellcode.hpp#L567-L575)
 
 ## Detailed example
 
