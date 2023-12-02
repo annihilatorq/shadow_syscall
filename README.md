@@ -55,10 +55,9 @@ int main(void)
 
 ## 📄 Documentation
 
-- `shadowsyscall_hashct(str)              -> compile-time hash`
-- `shadowsyscall_hashrt(str)              -> runtime hash`
-- `shadowsyscall(type, export_name)       -> class wrapper allows you to call some methods, also includes .invoke() method`
-- `shadowsyscall_(type, export_name, ...) -> syscall executor`
+- `SHADOWSYSCALL_COMPILETIME_HASH(str)    -> compile-time hash`
+- `SHADOWSYSCALL_RUNTIME_HASH(str)        -> runtime hash`
+- `shadowsyscall(type, syscall_name)      -> class wrapper allows you to call some methods, also includes .call() and .cached_call() method`
 
 ## 🛠️ Configuration
 
