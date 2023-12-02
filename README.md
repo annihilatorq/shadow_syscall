@@ -2,17 +2,11 @@
 
 Easy to use syscall wrapper based on shellcode. Each call is hashed using intrins and is not reverse-engineer friendly.
 
-Target platform (as of today) - MSVC (no others have been tested), x64 Release & Debug, CPP 17 - 23
+Target platform (as of today) - MSVC (no others have been tested), x64 Release & Debug, CPP 14 - 23
 
-## Simple example
-
+### Quick example
 ```cpp
-int main(void)
-{
-    shadowsyscall(NTSTATUS, NtTerminateProcess).invoke((HANDLE)0xDEADC0DE, -1);
-
-    return EXIT_SUCCESS;
-}
+shadowsyscall(NTSTATUS, NtTerminateProcess).call((HANDLE)0xDEADC0DE, -1);
 ```
 
 Shellcode uses VirtualAlloc and VirtualFree function wrappers from *kernelbase.dll*, memory allocation itself is based on ```NtAllocateVirtualMemory | NtFreeVirtualMemory```, which are executed in runtime by addresses of these routines.
@@ -24,18 +18,21 @@ https://github.com/annihilatorq/shadow_syscall/blob/e0c736bf4a5de217ae0f0a6b4b11
 ```cpp
 int main(void)
 {
-    auto instance = shadowsyscall(NTSTATUS, NtTerminateProcess);
+    NTSTATUS result = 0;
 
-    // insert index into the cache before executing syscall, unnecessarily
-    instance.insert_index();
+    // Execute "NtTerminateProcess" syscall
+    shadowsyscall(NTSTATUS, NtTerminateProcess).call((HANDLE)0xDEADC0DE, -1);
 
-    // get NtTerminateProcess syscall index
-    uint32_t index = instance.syscall_index();
+    // NtTerminateProcess cached call
+    for (int i = 0; i < 5; ++i)
+        result = shadowsyscall(NTSTATUS, NtTerminateProcess).cached_call((HANDLE)0xDEADC0DE, -1);
 
-    // execute NtTerminateProcess syscall
-    NTSTATUS status = instance.invoke((HANDLE)0xDEADC0DE, -1);
+    // Check for return value
+    std::cout << "Last NtTerminateProcess return value: 0x" << std::hex << result << '\n';
 
-    std::cout << "syscall status: " << "0x" << std::hex << status << std::endl;
+    // As expected, console output is - 0xc0000008, which refers to STATUS_INVALID_HANDLE
+    // More about NTSTATUS error handling below:
+    // https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-erref/596a1078-e883-4972-9bbc-49e60bebca55
 
     return EXIT_SUCCESS;
 }
@@ -47,27 +44,14 @@ int main(void)
 - Ability to disable exceptions within the code.
 - Doesn't leave any strings in executable memory.
 - Compile-time hashing export.
+- Hash seed is pseudo-randomized, based on compilation time.
 - Runtime hash based on intrins.
 - Doesn't leave any imports in the executable.
 - Ability to switch between SSE and AVX intrins.
+- Header includes only ```<intrin.h>``` so that the compilation time is minimized.
 
 ## 📜 What's a syscall?
 ![syscall_architecture](https://github.com/annihilatorq/shadow_syscall/assets/143023834/63f46089-a590-4c6b-aa60-447b536ece34)
-
-## ⏲️ Benchmarks - call caching
-Each test calculates the average of 100 syscalls to the same nt-api.
-syscall used: **NtReadVirtualMemory**
-
-Benchmark time is measured in `microseconds`
-```
-Map-cached calls, the result: 0.72ms  -  1.12ms per call.  70.2ms per hundred calls.
-
-Non-cached calls, the result: 38.54ms - 52.61ms per call.  3854ms per hundred calls.
-```
-
-The difference between call caching and regular call is obvious, the whole point is that when caching calls - the syscall index is stored in the `std::map` container, then the first thing is to check the presence of the index by the necessary hash when calling the syscall.
-
-If the corresponding syscall index is found by hash in `std::map`, then rolling up the list of modules and their exports through PEB is not required, thus we eliminate several cycles before making the call itself. This is how we achieve such performance.
 
 ## 📄 Documentation
 
@@ -84,7 +68,8 @@ If the corresponding syscall index is found by hash in `std::map`, then rolling 
 | `SHADOWSYSCALL_DISABLE_EXCEPTIONS`        | disables all exceptions and returns 0 if the function fails.                            |
 | `SHADOWSYSCALL_DISABLE_INTRIN_HASH`       | disables runtime intrin-based hashing, and leaves normal arithmetic operations in place |
 | `SHADOWSYSCALL_NO_CACHING`                | completely disables caching of all syscalls.                                            |
-| `SHADOWSYSCALL_USE_AVX_INTRINS`           | use only AVX in the hashing algorithm instead of SSE intrins                         |
+| `SHADOWSYSCALL_USE_AVX_INTRINS`           | use only AVX in the hashing algorithm instead of SSE intrins                            |
+| `SHADOWSYSCALL_CASE_INSENSITIVE`          | disables case sensitivity in the hashing algorithm                                      |
 
 ## Thanks to
 invers1on :heart:
