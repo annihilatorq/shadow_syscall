@@ -6,6 +6,8 @@
 #ifndef SHADOW_SYSCALLS_SHELL_HPP
 #define SHADOW_SYSCALLS_SHELL_HPP
 
+#define SHADOWSYSCALL_DISABLE_CACHING
+
 #ifndef _M_X64
 #error Currently unsupported target architecture.
 #endif
@@ -299,7 +301,6 @@ namespace shadow_syscall {
 			{
 				return m_message;
 			}
-
 		private:
 			const char* m_message;
 		};
@@ -658,7 +659,9 @@ namespace shadow_syscall {
 
 		// For "/std:c++14"
 #if !(INLINE_VARIABLES)
+#ifndef SHADOWSYSCALL_DISABLE_CACHING
 		static std::unordered_map<unsigned int, unsigned int> syscall_index_map;
+#endif
 		static ::shadow_syscall::utils::pair<pointer_t> virtual_routine_address;
 #endif
 
@@ -740,7 +743,9 @@ namespace shadow_syscall {
 			};
 
 #if INLINE_VARIABLES
+#ifndef SHADOWSYSCALL_DISABLE_CACHING
 			static inline std::unordered_map<value_t, value_t> syscall_index_map;
+#endif
 			static inline ::shadow_syscall::utils::pair<pointer_t> virtual_routine_address;
 #endif
 		};
