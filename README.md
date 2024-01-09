@@ -11,7 +11,7 @@ shadowsyscall(NTSTATUS, NtTerminateProcess).call((HANDLE)0xDEADC0DE, -1);
 
 Shellcode uses VirtualAlloc and VirtualFree function wrappers from *kernelbase.dll*, memory allocation itself is based on ```NtAllocateVirtualMemory | NtFreeVirtualMemory```, which are executed in runtime by addresses of these routines.
 
-https://github.com/annihilatorq/shadow_syscall/blob/36a7c7cd3be1102f1174f46657c2434a702b95f4/include/shadow%20syscall%20shellcode.hpp#L567-L575
+https://github.com/annihilatorq/shadow_syscall/blob/f9a2e5022578c97aaf8600825ec70b7bc5184ee2/include/shadow%20syscall%20shellcode.hpp#L586-L602
 
 ## Detailed example
 
