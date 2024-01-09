@@ -6,6 +6,8 @@
 #ifndef SHADOW_SYSCALLS_SHELL_HPP
 #define SHADOW_SYSCALLS_SHELL_HPP
 
+#define SHADOWSYSCALL_DISABLE_CACHING
+
 #ifndef _M_X64
 #error Currently unsupported target architecture.
 #endif
@@ -286,6 +288,8 @@ namespace shadow_syscall {
 			T2 second;
 		};
 
+#ifndef SHADOWSYSCALL_DISABLE_CACHING
+
 		// This map implementation does not pretend to be released
 		// in std::cpp-26, it is the simplest, in terms of security
 		// not comparable to stl implementation, which performs its
@@ -402,6 +406,8 @@ namespace shadow_syscall {
 				}
 			}
 		};
+
+#endif
 	}
 
 	namespace hash
