@@ -584,14 +584,14 @@ namespace shadow_syscall {
 	{
 		using ntstatus = long;
 
-		SHADOWSYSCALL_FORCEINLINE void* nt_virtual_alloc(pointer_t NtAllocateVirtualMemoryAddr, void* lpAddress, unsigned long long dwSize, unsigned long flAllocationType, unsigned long flProtect)
+		SHADOWSYSCALL_FORCEINLINE void* nt_virtual_alloc(pointer_t nt_allocate_virtual_memory, void* lpAddress, unsigned long long dwSize, unsigned long flAllocationType, unsigned long flProtect)
 		{
 			using call_type = ntstatus(__stdcall*)(void*, void*, unsigned long long, unsigned long long*, unsigned long, unsigned long);
 
 			void* base_address = lpAddress;
 			unsigned long long region_size = dwSize;
 
-			ntstatus result = reinterpret_cast<call_type>(NtAllocateVirtualMemoryAddr)((void*)-1, &base_address, 0, &region_size, flAllocationType & 0xFFFFFFC0, flProtect);
+			ntstatus result = reinterpret_cast<call_type>(nt_allocate_virtual_memory)((void*)-1, &base_address, 0, &region_size, flAllocationType & 0xFFFFFFC0, flProtect);
 
 			if (NT_SUCCESS(result)) {
 				return base_address;
@@ -600,7 +600,7 @@ namespace shadow_syscall {
 			return nullptr;
 		}
 
-		SHADOWSYSCALL_FORCEINLINE int nt_virtual_free(pointer_t NtFreeVirtualMemoryAddr, void* lpAddress, unsigned long long dwSize, unsigned long dwFreeType)
+		SHADOWSYSCALL_FORCEINLINE int nt_virtual_free(pointer_t nt_free_virtual_memory, void* lpAddress, unsigned long long dwSize, unsigned long dwFreeType)
 		{
 			using call_type = ntstatus(__stdcall*)(void*, void*, unsigned long long*, unsigned long);
 
@@ -613,11 +613,11 @@ namespace shadow_syscall {
 				result = -0x3FFFFFF3;
 			}
 
-			result = reinterpret_cast<call_type>(NtFreeVirtualMemoryAddr)((void*)-1, &base_address, &region_size, dwFreeType);
+			result = reinterpret_cast<call_type>(nt_free_virtual_memory)((void*)-1, &base_address, &region_size, dwFreeType);
 
 			if (result == -0x3FFFFFBB)
 			{
-				result = reinterpret_cast<call_type>(NtFreeVirtualMemoryAddr)((void*)-1, &base_address, &region_size, dwFreeType);
+				result = reinterpret_cast<call_type>(nt_free_virtual_memory)((void*)-1, &base_address, &region_size, dwFreeType);
 			}
 
 			return NT_SUCCESS(result);
@@ -631,9 +631,9 @@ namespace shadow_syscall {
 		template<class... Args>
 		shellcode_allocator(Args&&... list) noexcept : m_shellcode_data{ static_cast<unsigned char>(list)... } {}
 
-		void allocate(const pointer_t& virtualAllocAddr) noexcept
+		void allocate(const pointer_t& virtual_alloc_addr) noexcept
 		{
-			m_memory = kernelbase::nt_virtual_alloc(virtualAllocAddr, nullptr, shellcode_size, 0x00001000 | 0x00002000, 0x40);
+			m_memory = kernelbase::nt_virtual_alloc(virtual_alloc_addr, nullptr, shellcode_size, 0x00001000 | 0x00002000, 0x40);
 
 			if (m_memory == nullptr)
 			{
@@ -648,12 +648,12 @@ namespace shadow_syscall {
 			m_shellcode_fn = m_memory;
 		}
 
-		void deallocate(const pointer_t& virtualFreeAddr) noexcept
+		void deallocate(const pointer_t& virtual_free_addr) noexcept
 		{
 			if (m_memory == nullptr)
 				return;
 
-			kernelbase::nt_virtual_free(virtualFreeAddr, m_memory, 0, 0x00008000);
+			kernelbase::nt_virtual_free(virtual_free_addr, m_memory, 0, 0x00008000);
 			m_memory = nullptr;	
 		}
 
