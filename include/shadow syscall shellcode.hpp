@@ -410,9 +410,9 @@ namespace shadow_syscall {
 #endif
 	}
 
-	namespace hash
+		namespace hash
 	{
-		constexpr unsigned int magic_value = (__TIME__[1] + __TIME__[4] + __TIME__[6] + __TIME__[7]) * 0x192857;
+		constexpr unsigned int magic_value = (__TIME__[1] + __TIME__[4] + __TIME__[6] + __TIME__[7]) + 0x381275 * 0x192857;
 
 		template<class char_t = char, bool runtime = false>
 		SHADOWSYSCALL_FORCEINLINE constexpr unsigned int hash_single(unsigned int offset, unsigned int index, char_t c)
@@ -423,7 +423,7 @@ namespace shadow_syscall {
 					(math::_xor_(magic_value, (index == 0 ? magic_value : index))));
 			}
 #endif
-			return static_cast<unsigned int>(c + (static_cast<int>(offset ^ c) + (magic_value + index) * c) *
+			return static_cast<unsigned int>(c + (static_cast<unsigned int>(offset ^ c) + (magic_value + index) * c) *
 				(magic_value ^ (index == 0 ? magic_value : index)));
 		}
 
