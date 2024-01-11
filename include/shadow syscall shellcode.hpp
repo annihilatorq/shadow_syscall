@@ -748,7 +748,7 @@ namespace shadow_syscall {
 			setup_shellcode();
 #endif
 
-			return reinterpret_cast<function_t(__stdcall*)(Args...)>(m_syscall_shell())(args...);
+			return reinterpret_cast<function_t(*)(Args...)>(m_syscall_shell())(args...);
 		}
 
 	private:
