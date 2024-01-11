@@ -6,13 +6,15 @@
 #ifndef SHADOW_SYSCALLS_SHELL_HPP
 #define SHADOW_SYSCALLS_SHELL_HPP
 
-#define SHADOWSYSCALL_DISABLE_CACHING
-
 #ifndef _M_X64
 #error Currently unsupported target architecture.
 #endif
 
+#if !(__clang__)
 #include <intrin.h>
+#else
+#define SHADOWSYSCALL_DISABLE_INTRIN_HASH
+#endif
 
 #ifndef SHADOWSYSCALL_DISABLE_EXCEPTIONS
 #define SHADOWSYSCALL_EXCEPTION_HANDLING false
@@ -74,7 +76,7 @@
 #define SHADOWSYSCALL_RHASH(str) shadow_syscall::hash::hash(str)
 
 #define shadowsyscall(type, syscall_name) [&]() { constexpr unsigned int hash = shadow_syscall::hash::chash(#syscall_name); \
-			return ::shadow_syscall::syscall<type, hash>(); }()
+			return shadow_syscall::syscall<type, hash>(); }()
 
 namespace shadow_syscall {
 	using pointer_t = unsigned long long;
@@ -125,8 +127,18 @@ namespace shadow_syscall {
 			const char* reserved3[2];
 			peb_ldr_data_t* ldr_data;
 
-			static const auto address() noexcept { return reinterpret_cast< const peb_t* >( __readgsqword(0x60) ); }
-			static const auto loader_data() noexcept { return reinterpret_cast< const peb_ldr_data_t* >( address()->ldr_data ); }
+			static const auto address() noexcept 
+			{ 
+#if defined(__clang__)
+				const peb_t* ptr;
+				__asm__ __volatile__("mov %%gs:0x60, %0" : "=r"(ptr));
+				return ptr;
+#elif defined(_MSC_VER)
+				return reinterpret_cast<const peb_t*>(__readgsqword(0x60));
+#endif
+			}
+
+			static const auto loader_data() noexcept { return reinterpret_cast<const peb_ldr_data_t*>(address()->ldr_data); }
 		};
 
 		struct image_export_directory {
@@ -142,11 +154,11 @@ namespace shadow_syscall {
 			unsigned long  address_of_names;
 			unsigned long  address_of_name_ordinals;
 
-			decltype(auto) rva_table(unsigned long long base) { return ( unsigned long* )( base + address_of_functions ); }
+			decltype(auto) rva_table(unsigned long long base) { return (unsigned long*)(base + address_of_functions); }
 			decltype(auto) ordinal_table(unsigned long long base) { return (unsigned short*)(base + address_of_name_ordinals); }
 		};
 
-		struct dos_header_t 
+		struct dos_header_t
 		{
 			unsigned short e_magic;
 			unsigned short e_cblp;
@@ -301,38 +313,23 @@ namespace shadow_syscall {
 		public:
 			map() : root(nullptr) {}
 
-			bool contains(const key_t& key) const 
+			bool contains(const key_t& key) const
 			{
 				return find(root, key) != nullptr;
 			}
 
-			void insert(const pair<key_t, value_t>& key_value) 
+			void insert(const pair<key_t, value_t>& key_value)
 			{
 				root = insert(root, key_value.first, key_value.second);
 			}
 
-			value_t find(const key_t& key) const 
+			value_t find(const key_t& key) const
 			{
 				node_t* result = find(root, key);
 				return result != nullptr ? result->value : value_t{};
 			}
 
-			value_t& at(const key_t& key) 
-			{
-				node_t* result = find(root, key);
-
-#ifndef SHADOWSYSCALL_DISABLE_EXCEPTIONS
-				if (result == nullptr) {
-					throw exception::simplest_exception("key not found in map");
-				}
-
-				return result->value;
-#else
-				return result != nullptr ? result->value : value_t{};
-#endif
-			}
-
-			const value_t& at(const key_t& key) const 
+			value_t& at(const key_t& key)
 			{
 				node_t* result = find(root, key);
 
@@ -347,7 +344,22 @@ namespace shadow_syscall {
 #endif
 			}
 
-			value_t& operator[](const key_t& key) 
+			const value_t& at(const key_t& key) const
+			{
+				node_t* result = find(root, key);
+
+#ifndef SHADOWSYSCALL_DISABLE_EXCEPTIONS
+				if (result == nullptr) {
+					throw exception::simplest_exception("key not found in map");
+				}
+
+				return result->value;
+#else
+				return result != nullptr ? result->value : value_t{};
+#endif
+			}
+
+			value_t& operator[](const key_t& key)
 			{
 				node_t* result = find(root, key);
 				if (result == nullptr) {
@@ -358,7 +370,7 @@ namespace shadow_syscall {
 			}
 
 		private:
-			struct node_t 
+			struct node_t
 			{
 				key_t key;
 				value_t value;
@@ -370,7 +382,7 @@ namespace shadow_syscall {
 
 			node_t* root;
 
-			node_t* insert(node_t* node, const key_t& key, const value_t& value) 
+			node_t* insert(node_t* node, const key_t& key, const value_t& value)
 			{
 				if (node == nullptr) {
 					return new node_t(key, value);
@@ -389,7 +401,7 @@ namespace shadow_syscall {
 				return node;
 			}
 
-			node_t* find(node_t* node, const key_t& key) const 
+			node_t* find(node_t* node, const key_t& key) const
 			{
 				if (node == nullptr) {
 					return nullptr;
@@ -410,9 +422,17 @@ namespace shadow_syscall {
 #endif
 	}
 
-		namespace hash
+	namespace hash
 	{
-		constexpr unsigned int magic_value = (__TIME__[1] + __TIME__[4] + __TIME__[6] + __TIME__[7]) + 0x381275 * 0x192857;
+		constexpr unsigned int hash_seed()
+		{
+			unsigned int value = 0x31892571;
+			for (char c : __TIME__)
+				value = static_cast<unsigned int>((value ^ c) * 0x38127512u);
+			return value;
+		}
+
+		constexpr unsigned int magic_value = hash_seed();
 
 		template<class char_t = char, bool runtime = false>
 		SHADOWSYSCALL_FORCEINLINE constexpr unsigned int hash_single(unsigned int offset, unsigned int index, char_t c)
@@ -428,7 +448,7 @@ namespace shadow_syscall {
 		}
 
 		template<bool case_sensitive = SHADOWSYSCALL_CASE_SENSITIVITY>
-		SHADOWSYSCALL_FORCEINLINE SHADOWSYSCALL_CONSTEVAL unsigned int chash(const char* str, unsigned int result = magic_value, unsigned int i = 0) noexcept
+		SHADOWSYSCALL_FORCEINLINE constexpr unsigned int chash(const char* str, unsigned int result = magic_value, unsigned int i = 0) noexcept
 		{
 			char c = str[i];
 
@@ -463,9 +483,7 @@ namespace shadow_syscall {
 			const char* s = const_cast<char*>(static_cast<const char*>(_Source));
 
 			for (unsigned long long i = 0; i < n; ++i)
-			{
 				d[i] = s[i];
-			}
 
 			return _Destination;
 		}
@@ -654,7 +672,7 @@ namespace shadow_syscall {
 				return;
 
 			kernelbase::nt_virtual_free(virtual_free_addr, m_memory, 0, 0x00008000);
-			m_memory = nullptr;	
+			m_memory = nullptr;
 		}
 
 		void set_byte(const unsigned int& index, const unsigned int& value) noexcept
@@ -662,7 +680,7 @@ namespace shadow_syscall {
 			*reinterpret_cast<unsigned int*>(&m_shellcode_data[index]) = value;
 		}
 
-		const void* operator()() const noexcept
+		void* operator()() noexcept
 		{
 			return m_shellcode_fn;
 		}
@@ -707,7 +725,7 @@ namespace shadow_syscall {
 			find_syscall_id();
 			setup_shellcode();
 
-			return reinterpret_cast<function_t(__stdcall*)(Args...)>(m_syscall_shell())(args...);
+			return reinterpret_cast<function_t(*)(Args...)>(m_syscall_shell())(args...);
 		}
 
 		template<class... Args>
@@ -745,7 +763,7 @@ namespace shadow_syscall {
 		{
 			m_syscall_shell.set_byte(6, m_syscall_id);
 			m_syscall_shell.allocate(virtual_routine_address.first);
-		}
+		}	
 
 		unsigned int m_syscall_id = 0;
 		shellcode_allocator<13> m_syscall_shell =
