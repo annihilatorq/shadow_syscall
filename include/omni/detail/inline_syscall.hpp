@@ -19,6 +19,7 @@
 #include <cstdint>
 
 #include "omni/detail/config.hpp"
+#include "omni/detail/normalize_pointer_argument.hpp"
 
 #ifdef OMNI_HAS_INLINE_SYSCALL
 
@@ -135,7 +136,7 @@ namespace omni::detail {
                  "syscall\n"
                  "add $48, %%rsp"
       : "=a"(status), "=r"(a1), "=d"(_2), "=r"(a3), "=r"(a4), "=c"(unused_output), "=r"(unused_output2)
-      : "a"(id), "r"(a1), "d"(_2), "r"(a3), "r"(a4), [a5] "re"(reinterpret_cast<void*>(_5))
+      : "a"(id), "r"(a1), "d"(_2), "r"(a3), "r"(a4), [a5] "re"(normalize_pointer_argument(_5))
       : "cc");
     return status;
   }
@@ -161,8 +162,8 @@ namespace omni::detail {
       "d"(_2),
       "r"(a3),
       "r"(a4),
-      [a5] "re"(reinterpret_cast<void*>(_5)),
-      [a6] "re"(reinterpret_cast<void*>(_6))
+      [a5] "re"(normalize_pointer_argument(_5)),
+      [a6] "re"(normalize_pointer_argument(_6))
       : "memory", "cc");
     return status;
   }
@@ -189,9 +190,9 @@ namespace omni::detail {
       "d"(_2),
       "r"(a3),
       "r"(a4),
-      [a5] "re"(reinterpret_cast<void*>(_5)),
-      [a6] "re"(reinterpret_cast<void*>(_6)),
-      [a7] "re"(reinterpret_cast<void*>(_7))
+      [a5] "re"(normalize_pointer_argument(_5)),
+      [a6] "re"(normalize_pointer_argument(_6)),
+      [a7] "re"(normalize_pointer_argument(_7))
       : "memory", "cc");
     return status;
   }
@@ -219,10 +220,10 @@ namespace omni::detail {
       "d"(_2),
       "r"(a3),
       "r"(a4),
-      [a5] "re"(reinterpret_cast<void*>(_5)),
-      [a6] "re"(reinterpret_cast<void*>(_6)),
-      [a7] "re"(reinterpret_cast<void*>(_7)),
-      [a8] "re"(reinterpret_cast<void*>(_8))
+      [a5] "re"(normalize_pointer_argument(_5)),
+      [a6] "re"(normalize_pointer_argument(_6)),
+      [a7] "re"(normalize_pointer_argument(_7)),
+      [a8] "re"(normalize_pointer_argument(_8))
       : "memory", "cc");
     return status;
   }
@@ -252,11 +253,11 @@ namespace omni::detail {
       "d"(_2),
       "r"(a3),
       "r"(a4),
-      [a5] "re"(reinterpret_cast<void*>(_5)),
-      [a6] "re"(reinterpret_cast<void*>(_6)),
-      [a7] "re"(reinterpret_cast<void*>(_7)),
-      [a8] "re"(reinterpret_cast<void*>(_8)),
-      [a9] "re"(reinterpret_cast<void*>(_9))
+      [a5] "re"(normalize_pointer_argument(_5)),
+      [a6] "re"(normalize_pointer_argument(_6)),
+      [a7] "re"(normalize_pointer_argument(_7)),
+      [a8] "re"(normalize_pointer_argument(_8)),
+      [a9] "re"(normalize_pointer_argument(_9))
       : "memory", "cc");
     return status;
   }
@@ -287,12 +288,12 @@ namespace omni::detail {
       "d"(_2),
       "r"(a3),
       "r"(a4),
-      [a5] "re"(reinterpret_cast<void*>(_5)),
-      [a6] "re"(reinterpret_cast<void*>(_6)),
-      [a7] "re"(reinterpret_cast<void*>(_7)),
-      [a8] "re"(reinterpret_cast<void*>(_8)),
-      [a9] "re"(reinterpret_cast<void*>(_9)),
-      [a10] "re"(reinterpret_cast<void*>(_10))
+      [a5] "re"(normalize_pointer_argument(_5)),
+      [a6] "re"(normalize_pointer_argument(_6)),
+      [a7] "re"(normalize_pointer_argument(_7)),
+      [a8] "re"(normalize_pointer_argument(_8)),
+      [a9] "re"(normalize_pointer_argument(_9)),
+      [a10] "re"(normalize_pointer_argument(_10))
       : "memory", "cc");
     return status;
   }
@@ -324,13 +325,13 @@ namespace omni::detail {
       "d"(_2),
       "r"(a3),
       "r"(a4),
-      [a5] "re"(reinterpret_cast<void*>(_5)),
-      [a6] "re"(reinterpret_cast<void*>(_6)),
-      [a7] "re"(reinterpret_cast<void*>(_7)),
-      [a8] "re"(reinterpret_cast<void*>(_8)),
-      [a9] "re"(reinterpret_cast<void*>(_9)),
-      [a10] "re"(reinterpret_cast<void*>(_10)),
-      [a11] "re"(reinterpret_cast<void*>(_11))
+      [a5] "re"(normalize_pointer_argument(_5)),
+      [a6] "re"(normalize_pointer_argument(_6)),
+      [a7] "re"(normalize_pointer_argument(_7)),
+      [a8] "re"(normalize_pointer_argument(_8)),
+      [a9] "re"(normalize_pointer_argument(_9)),
+      [a10] "re"(normalize_pointer_argument(_10)),
+      [a11] "re"(normalize_pointer_argument(_11))
       : "memory", "cc");
     return status;
   }
@@ -364,14 +365,14 @@ namespace omni::detail {
       "d"(_2),
       "r"(a3),
       "r"(a4),
-      [a5] "re"(reinterpret_cast<void*>(_5)),
-      [a6] "re"(reinterpret_cast<void*>(_6)),
-      [a7] "re"(reinterpret_cast<void*>(_7)),
-      [a8] "re"(reinterpret_cast<void*>(_8)),
-      [a9] "re"(reinterpret_cast<void*>(_9)),
-      [a10] "re"(reinterpret_cast<void*>(_10)),
-      [a11] "re"(reinterpret_cast<void*>(_11)),
-      [a12] "re"(reinterpret_cast<void*>(_12))
+      [a5] "re"(normalize_pointer_argument(_5)),
+      [a6] "re"(normalize_pointer_argument(_6)),
+      [a7] "re"(normalize_pointer_argument(_7)),
+      [a8] "re"(normalize_pointer_argument(_8)),
+      [a9] "re"(normalize_pointer_argument(_9)),
+      [a10] "re"(normalize_pointer_argument(_10)),
+      [a11] "re"(normalize_pointer_argument(_11)),
+      [a12] "re"(normalize_pointer_argument(_12))
       : "memory", "cc");
     return status;
   }
@@ -406,15 +407,15 @@ namespace omni::detail {
       "d"(_2),
       "r"(a3),
       "r"(a4),
-      [a5] "re"(reinterpret_cast<void*>(_5)),
-      [a6] "re"(reinterpret_cast<void*>(_6)),
-      [a7] "re"(reinterpret_cast<void*>(_7)),
-      [a8] "re"(reinterpret_cast<void*>(_8)),
-      [a9] "re"(reinterpret_cast<void*>(_9)),
-      [a10] "re"(reinterpret_cast<void*>(_10)),
-      [a11] "re"(reinterpret_cast<void*>(_11)),
-      [a12] "re"(reinterpret_cast<void*>(_12)),
-      [a13] "re"(reinterpret_cast<void*>(_13))
+      [a5] "re"(normalize_pointer_argument(_5)),
+      [a6] "re"(normalize_pointer_argument(_6)),
+      [a7] "re"(normalize_pointer_argument(_7)),
+      [a8] "re"(normalize_pointer_argument(_8)),
+      [a9] "re"(normalize_pointer_argument(_9)),
+      [a10] "re"(normalize_pointer_argument(_10)),
+      [a11] "re"(normalize_pointer_argument(_11)),
+      [a12] "re"(normalize_pointer_argument(_12)),
+      [a13] "re"(normalize_pointer_argument(_13))
       : "memory", "cc");
     return status;
   }
