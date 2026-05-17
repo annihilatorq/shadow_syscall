@@ -164,9 +164,9 @@ namespace omni::tests {
       }
     }
 
-    const auto resolution = api_query.get_api_set_module_base_name == nullptr
-                              ? api_set_module_base_name_resolution::fallback_missing_api
-                              : api_set_module_base_name_resolution::fallback_e_notimpl;
+    const auto resolution = api_query.get_api_set_module_base_name == nullptr ?
+                              api_set_module_base_name_resolution::fallback_missing_api :
+                              api_set_module_base_name_resolution::fallback_e_notimpl;
 
     std::wstring contract_name_storage{contract_name.begin(), contract_name.end()};
     if (!contract_name_storage.ends_with(L".dll")) {

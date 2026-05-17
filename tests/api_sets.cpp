@@ -1,6 +1,6 @@
+#include <iostream>
 #include <string>
 #include <string_view>
-#include <iostream>
 
 #include "omni/api_sets.hpp"
 #include "test_utils.hpp"
@@ -49,12 +49,12 @@ namespace {
 
   [[nodiscard]] std::string_view resolution_reason(tests::api_set_module_base_name_resolution resolution) {
     switch (resolution) {
-      case tests::api_set_module_base_name_resolution::direct_query:
-        return "direct query";
-      case tests::api_set_module_base_name_resolution::fallback_missing_api:
-        return "GetApiSetModuleBaseName is unavailable";
-      case tests::api_set_module_base_name_resolution::fallback_e_notimpl:
-        return "GetApiSetModuleBaseName returned E_NOTIMPL";
+    case tests::api_set_module_base_name_resolution::direct_query:
+      return "direct query";
+    case tests::api_set_module_base_name_resolution::fallback_missing_api:
+      return "GetApiSetModuleBaseName is unavailable";
+    case tests::api_set_module_base_name_resolution::fallback_e_notimpl:
+      return "GetApiSetModuleBaseName returned E_NOTIMPL";
     }
 
     return "unknown resolution path";
@@ -108,24 +108,24 @@ ut::suite<"omni::api_sets"> api_sets_suite = [] {
 
       auto module_base_name = tests::query_api_set_module_base_name(api_query, contract_name);
       switch (module_base_name.resolution) {
-        case tests::api_set_module_base_name_resolution::direct_query:
-          break;
-        case tests::api_set_module_base_name_resolution::fallback_missing_api:
-          ++fallback_missing_api_count;
-          if (!logged_missing_api_fallback) {
-            std::cerr << "[omni::api_sets] falling back to LoadLibrary-based API-set resolution because "
-                      << resolution_reason(module_base_name.resolution) << "; first contract=\"" << contract_name << "\"\n";
-            logged_missing_api_fallback = true;
-          }
-          break;
-        case tests::api_set_module_base_name_resolution::fallback_e_notimpl:
-          ++fallback_e_notimpl_count;
-          if (!logged_e_notimpl_fallback) {
-            std::cerr << "[omni::api_sets] falling back to LoadLibrary-based API-set resolution because "
-                      << resolution_reason(module_base_name.resolution) << "; first contract=\"" << contract_name << "\"\n";
-            logged_e_notimpl_fallback = true;
-          }
-          break;
+      case tests::api_set_module_base_name_resolution::direct_query:
+        break;
+      case tests::api_set_module_base_name_resolution::fallback_missing_api:
+        ++fallback_missing_api_count;
+        if (!logged_missing_api_fallback) {
+          std::cerr << "[omni::api_sets] falling back to LoadLibrary-based API-set resolution because "
+                    << resolution_reason(module_base_name.resolution) << "; first contract=\"" << contract_name << "\"\n";
+          logged_missing_api_fallback = true;
+        }
+        break;
+      case tests::api_set_module_base_name_resolution::fallback_e_notimpl:
+        ++fallback_e_notimpl_count;
+        if (!logged_e_notimpl_fallback) {
+          std::cerr << "[omni::api_sets] falling back to LoadLibrary-based API-set resolution because "
+                    << resolution_reason(module_base_name.resolution) << "; first contract=\"" << contract_name << "\"\n";
+          logged_e_notimpl_fallback = true;
+        }
+        break;
       }
 
       if (FAILED(module_base_name.hr)) {
