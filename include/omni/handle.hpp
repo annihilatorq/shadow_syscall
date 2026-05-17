@@ -31,7 +31,7 @@ namespace omni {
       omni::syscaller<omni::status> invoker_{"NtClose"};
 #  endif
 #else
-      omni::lazy_importer<omni::status> invoker_{"NtClose"};
+      omni::lazy_importer<omni::status> invoker_{"NtClose", "ntdll.dll"};
 #endif
     };
 
