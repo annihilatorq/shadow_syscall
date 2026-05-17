@@ -100,8 +100,9 @@ namespace omni {
     using is_always_equal = std::true_type;
 
    private:
-    static void* virtual_alloc(void* address, std::uint64_t allocation_size, std::uint32_t alloc_type, std::uint32_t protect) {
+    static void* virtual_alloc(void* address, std::size_t allocation_size, std::uint32_t alloc_type, std::uint32_t protect) {
       void* current_process{reinterpret_cast<void*>(-1)};
+      omni::address::value_type zero_bits{};
 
       auto nt_allocate_mem = omni::address{detail::cached_alloc_proc.load(std::memory_order_acquire)};
       if (!nt_allocate_mem) {
@@ -118,14 +119,14 @@ namespace omni {
 
       auto result = nt_allocate_mem.template invoke<omni::status>(current_process,
         &address,
-        0ULL,
+        zero_bits,
         &allocation_size,
         allocation_type,
         protect);
       return result.has_value() && result->is_success() ? address : nullptr;
     }
 
-    static bool virtual_free(void* address, std::uint64_t size, std::uint32_t free_type) {
+    static bool virtual_free(void* address, std::size_t size, std::uint32_t free_type) {
       void* current_process{reinterpret_cast<void*>(-1)};
 
       auto nt_free_mem = omni::address{detail::cached_free_proc.load(std::memory_order_acquire)};
