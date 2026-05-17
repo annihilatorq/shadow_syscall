@@ -24,8 +24,7 @@ namespace {
   }
 
   [[nodiscard]] omni::unique_handle open_example_process() {
-    return omni::unique_handle{
-      ::OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, FALSE, example_process_id())};
+    return omni::unique_handle{::OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, FALSE, example_process_id())};
   }
 
   [[nodiscard]] std::wstring process_image_path(HANDLE handle) {
