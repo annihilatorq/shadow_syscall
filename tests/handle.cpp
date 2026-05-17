@@ -7,7 +7,7 @@
 
 namespace {
 
-  using nt_close_fn = omni::status (*)(HANDLE);
+  using nt_close_fn = omni::status(NTAPI*)(HANDLE);
 
   [[nodiscard]] HANDLE create_event_handle() {
     return ::CreateEventW(nullptr, TRUE, FALSE, nullptr);
