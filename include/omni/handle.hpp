@@ -78,6 +78,11 @@ namespace omni {
       return handle_;
     }
 
+    [[nodiscard]] handle_type* out_ptr() noexcept {
+      reset();
+      return std::addressof(handle_);
+    }
+
     [[nodiscard]] handle_type release() noexcept {
       return std::exchange(handle_, nullptr);
     }

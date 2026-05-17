@@ -125,6 +125,70 @@ ut::suite<"omni::handle"> handle_suite = [] {
     cleanup_os_handle(released);
   };
 
+  "out_ptr lets WinAPI output parameters populate empty wrappers"_test = [] {
+    omni::unique_handle read_end;
+    omni::unique_handle write_end;
+
+    const BOOL created = ::CreatePipe(read_end.out_ptr(), write_end.out_ptr(), nullptr, 0U);
+
+    expect(fatal(created != FALSE));
+    expect(read_end.valid());
+    expect(write_end.valid());
+    expect(fatal(is_open_os_handle(static_cast<HANDLE>(read_end.get()))));
+    expect(fatal(is_open_os_handle(static_cast<HANDLE>(write_end.get()))));
+
+    auto released_read_end = static_cast<HANDLE>(read_end.release());
+    auto released_write_end = static_cast<HANDLE>(write_end.release());
+
+    cleanup_os_handle(released_read_end);
+    cleanup_os_handle(released_write_end);
+  };
+
+  "out_ptr closes the current handle before exposing storage for a replacement"_test = [] {
+    HANDLE first = create_event_handle();
+    HANDLE second = create_event_handle();
+    omni::unique_handle handle{first};
+
+    expect(fatal(first != nullptr));
+    expect(fatal(second != nullptr));
+
+    auto* out = handle.out_ptr();
+
+    expect(out != nullptr);
+    expect(handle.get() == nullptr);
+    expect(not handle.valid());
+    expect(is_closed_os_handle(first));
+
+    *out = second;
+
+    expect(handle.get() == second);
+    expect(handle.valid());
+    expect(is_open_os_handle(second));
+
+    auto released = static_cast<HANDLE>(handle.release());
+    cleanup_os_handle(released);
+  };
+
+  "out_ptr leaves the wrapper empty when no new handle is produced"_test = [] {
+    HANDLE raw_handle = create_event_handle();
+    omni::unique_handle handle{raw_handle};
+
+    expect(fatal(raw_handle != nullptr));
+
+    auto* out = handle.out_ptr();
+
+    expect(out != nullptr);
+    expect(handle.get() == nullptr);
+    expect(not handle.valid());
+    expect(is_closed_os_handle(raw_handle));
+
+    *out = nullptr;
+
+    expect(handle.get() == nullptr);
+    expect(not handle.valid());
+    expect(handle.close() == omni::ntstatus::success);
+  };
+
   "reset closes the previous handle and adopts the replacement"_test = [] {
     HANDLE first = create_event_handle();
     HANDLE second = create_event_handle();
