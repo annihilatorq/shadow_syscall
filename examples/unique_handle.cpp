@@ -44,19 +44,18 @@ namespace {
 } // namespace
 
 int main() {
-  auto process = open_shell_process();
-
+  omni::unique_handle process = open_shell_process();
   if (!process) {
     std::println("Failed to open a handle to the shell process.");
     return 1;
   }
 
-  const DWORD process_id = ::GetProcessId(static_cast<HANDLE>(process.get()));
-  const std::wstring image_path = process_image_path(static_cast<HANDLE>(process.get()));
+  const DWORD process_id = ::GetProcessId(process.get());
+  const std::wstring image_path = process_image_path(process.get());
   const std::string image_path_string =
     image_path.empty() ? std::string{"<unknown>"} : std::filesystem::path{image_path}.string();
 
-  std::println("unique_handle wraps a normal WinAPI process handle without changing how you use it:");
+  std::println("unique_handle wraps a normal WinAPI process handle in RAII without changing how you use it:");
   std::println("  process id           : {}", process_id);
   std::println("  handle               : {:#x}", reinterpret_cast<std::uintptr_t>(process.get()));
   std::println("  image path           : {}", image_path_string);
@@ -66,7 +65,7 @@ int main() {
 
   std::println("The raw handle is always one call away:");
   DWORD exit_code{};
-  ::GetExitCodeProcess(static_cast<HANDLE>(process.get()), &exit_code);
+  ::GetExitCodeProcess(process.get(), &exit_code);
   std::println("  GetExitCodeProcess   : {}", exit_code);
 
   std::println();
