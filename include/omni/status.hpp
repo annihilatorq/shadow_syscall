@@ -83,6 +83,10 @@ namespace omni {
       return value == val;
     }
 
+    [[nodiscard]] constexpr bool operator==(status other) const noexcept {
+      return value == other.value;
+    }
+
     [[nodiscard]] constexpr auto operator<=>(const status& other) const noexcept = default;
     [[nodiscard]] constexpr std::strong_ordering operator<=>(std::int32_t val) const noexcept {
       return value <=> val;
