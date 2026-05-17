@@ -1,5 +1,6 @@
 #pragma once
 
+#include <atomic>
 #include <expected>
 #include <system_error>
 #include <type_traits>
@@ -60,21 +61,81 @@ namespace omni {
   static_assert(concepts::syscall_id_parser<default_syscall_id_parser>);
 
   struct shellcode_syscall_invoker {
-    bool shellcode_initialized{false};
     detail::shellcode<13> shellcode{{0x49, 0x89, 0xCA, 0x48, 0xC7, 0xC0, 0x3F, 0x10, 0x00, 0x00, 0x0F, 0x05, 0xC3}};
+    alignas(std::atomic_ref<std::uint32_t>::required_alignment) std::uint32_t shellcode_state_{0U};
+
+    shellcode_syscall_invoker() = default;
+    shellcode_syscall_invoker(const shellcode_syscall_invoker&) = delete;
+    shellcode_syscall_invoker(shellcode_syscall_invoker&& other) noexcept
+      : shellcode(std::move(other.shellcode)),
+        shellcode_state_(std::atomic_ref<std::uint32_t>{other.shellcode_state_}.exchange(0U, std::memory_order_acq_rel)) {}
+    shellcode_syscall_invoker& operator=(const shellcode_syscall_invoker&) = delete;
+    shellcode_syscall_invoker& operator=(shellcode_syscall_invoker&& other) noexcept {
+      if (this == &other) {
+        return *this;
+      }
+
+      shellcode = std::move(other.shellcode);
+      const auto moved_state = std::atomic_ref<std::uint32_t>{other.shellcode_state_}.exchange(shellcode_state_uninitialized,
+        std::memory_order_acq_rel);
+      std::atomic_ref<std::uint32_t>{shellcode_state_}.store(moved_state, std::memory_order_relaxed);
+      return *this;
+    }
+    ~shellcode_syscall_invoker() = default;
 
     template <typename T = omni::status, typename... Args>
     T operator()(std::uint32_t syscall_id, Args&&... args) {
-      if (!shellcode_initialized) {
-        shellcode.write<std::uint32_t>(6, syscall_id);
-        shellcode.setup();
-        shellcode_initialized = true;
+      auto shellcode_state = std::atomic_ref<std::uint32_t>{shellcode_state_};
+      if (shellcode_state.load(std::memory_order_acquire) != shellcode_state_initialized) {
+        ensure_shellcode_initialized(shellcode_state, syscall_id);
       }
 
       if constexpr (std::is_void_v<T>) {
         shellcode.execute(std::forward<Args>(args)...);
       } else {
         return shellcode.execute<T>(std::forward<Args>(args)...);
+      }
+    }
+
+   private:
+    constexpr static std::uint32_t shellcode_state_uninitialized = 0U;
+    constexpr static std::uint32_t shellcode_state_initializing = 1U;
+    constexpr static std::uint32_t shellcode_state_initialized = 2U;
+
+    void ensure_shellcode_initialized(std::atomic_ref<std::uint32_t> shellcode_state, std::uint32_t syscall_id) {
+      for (;;) {
+        const auto current_state = shellcode_state.load(std::memory_order_acquire);
+        if (current_state == shellcode_state_initialized) {
+          return;
+        }
+
+        if (current_state != shellcode_state_uninitialized) {
+          continue;
+        }
+
+        auto expected_state = shellcode_state_uninitialized;
+        if (!shellcode_state.compare_exchange_strong(expected_state,
+              shellcode_state_initializing,
+              std::memory_order_acq_rel,
+              std::memory_order_acquire)) {
+          continue;
+        }
+
+#ifdef OMNI_HAS_EXCEPTIONS
+        try {
+          shellcode.write<std::uint32_t>(6, syscall_id);
+          shellcode.setup();
+          shellcode_state.store(shellcode_state_initialized, std::memory_order_release);
+        } catch (...) {
+          shellcode_state.store(shellcode_state_uninitialized, std::memory_order_release);
+          throw;
+        }
+#else
+        shellcode.write<std::uint32_t>(6, syscall_id);
+        shellcode.setup();
+        shellcode_state.store(shellcode_state_initialized, std::memory_order_release);
+#endif
+        return;
       }
     }
   };

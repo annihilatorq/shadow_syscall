@@ -1,7 +1,11 @@
 #include <Windows.h>
 
+#include <atomic>
+#include <barrier>
 #include <cstdint>
 #include <optional>
+#include <thread>
+#include <vector>
 
 #include "omni/error.hpp"
 #include "omni/syscall.hpp"
@@ -208,6 +212,148 @@ ut::suite<"omni::syscall"> syscall_suite = [] {
     expect(typed_info.peb_base_address == free_generic_info.peb_base_address);
     expect(typed_info.unique_process_id == free_typed_info.unique_process_id);
     expect(typed_info.unique_process_id == free_generic_info.unique_process_id);
+  };
+
+  "shared syscaller survives concurrent first use"_test = [] {
+    omni::syscaller<omni::status> caller{"NtQueryInformationProcess"};
+
+    constexpr std::size_t thread_count = 8U;
+    constexpr std::size_t iteration_count = 32U;
+
+    std::barrier sync_point{static_cast<std::ptrdiff_t>(thread_count + 1)};
+    std::atomic<std::size_t> failures{};
+    std::vector<std::thread> workers;
+    workers.reserve(thread_count);
+
+    for (std::size_t i{}; i < thread_count; ++i) {
+      workers.emplace_back([&] {
+        sync_point.arrive_and_wait();
+
+        for (std::size_t iteration{}; iteration < iteration_count; ++iteration) {
+          process_basic_information syscall_info{};
+          ULONG syscall_return_length{};
+          auto syscall_status =
+            caller.try_invoke(::GetCurrentProcess(), 0U, &syscall_info, sizeof(syscall_info), &syscall_return_length);
+
+          const bool invocation_succeeded = syscall_status.has_value() && syscall_status->is_success() &&
+                                            syscall_return_length == sizeof(syscall_info) &&
+                                            syscall_info.peb_base_address != nullptr &&
+                                            static_cast<DWORD>(syscall_info.unique_process_id) == ::GetCurrentProcessId();
+          if (!invocation_succeeded) {
+            failures.fetch_add(1U, std::memory_order_relaxed);
+          }
+        }
+      });
+    }
+
+    sync_point.arrive_and_wait();
+
+    for (auto& worker : workers) {
+      worker.join();
+    }
+
+    expect(failures.load(std::memory_order_relaxed) == 0U);
+  };
+
+  "moving a warmed shellcode invoker resets the source state"_test = [] {
+    auto named_export = omni::get_export("NtQueryInformationProcess");
+    auto syscall_id = omni::default_syscall_id_parser{}(named_export);
+
+    expect(fatal(named_export.present()));
+    expect(fatal(syscall_id.has_value()));
+
+    auto invoke_query_information_process = [&](omni::shellcode_syscall_invoker& invoker,
+                                                process_basic_information& syscall_info,
+                                                ULONG& syscall_return_length) {
+      syscall_info = {};
+      syscall_return_length = 0U;
+      return invoker.template operator()<omni::status>(*syscall_id,
+        ::GetCurrentProcess(),
+        0U,
+        &syscall_info,
+        sizeof(syscall_info),
+        &syscall_return_length);
+    };
+
+    omni::shellcode_syscall_invoker source;
+
+    process_basic_information warm_source_info{};
+    ULONG warm_source_return_length{};
+    auto warm_source_status = invoke_query_information_process(source, warm_source_info, warm_source_return_length);
+
+    expect(warm_source_status.is_success());
+    expect(warm_source_return_length == sizeof(warm_source_info));
+    expect(warm_source_info.peb_base_address != nullptr);
+
+    omni::shellcode_syscall_invoker moved{std::move(source)};
+
+    process_basic_information moved_info{};
+    ULONG moved_return_length{};
+    auto moved_status = invoke_query_information_process(moved, moved_info, moved_return_length);
+
+    expect(moved_status.is_success());
+    expect(moved_return_length == sizeof(moved_info));
+    expect(moved_info.peb_base_address != nullptr);
+
+    process_basic_information reused_source_info{};
+    ULONG reused_source_return_length{};
+    auto reused_source_status =
+      invoke_query_information_process(source, reused_source_info, reused_source_return_length);
+
+    expect(reused_source_status.is_success());
+    expect(reused_source_return_length == sizeof(reused_source_info));
+    expect(reused_source_info.peb_base_address != nullptr);
+  };
+
+  "move-assigning a warmed shellcode invoker resets the source state"_test = [] {
+    auto named_export = omni::get_export("NtQueryInformationProcess");
+    auto syscall_id = omni::default_syscall_id_parser{}(named_export);
+
+    expect(fatal(named_export.present()));
+    expect(fatal(syscall_id.has_value()));
+
+    auto invoke_query_information_process = [&](omni::shellcode_syscall_invoker& invoker,
+                                                process_basic_information& syscall_info,
+                                                ULONG& syscall_return_length) {
+      syscall_info = {};
+      syscall_return_length = 0U;
+      return invoker.template operator()<omni::status>(*syscall_id,
+        ::GetCurrentProcess(),
+        0U,
+        &syscall_info,
+        sizeof(syscall_info),
+        &syscall_return_length);
+    };
+
+    omni::shellcode_syscall_invoker source;
+    omni::shellcode_syscall_invoker target;
+
+    process_basic_information warm_source_info{};
+    ULONG warm_source_return_length{};
+    auto warm_source_status = invoke_query_information_process(source, warm_source_info, warm_source_return_length);
+
+    expect(warm_source_status.is_success());
+    expect(warm_source_return_length == sizeof(warm_source_info));
+    expect(warm_source_info.peb_base_address != nullptr);
+
+    target = std::move(source);
+
+    process_basic_information moved_target_info{};
+    ULONG moved_target_return_length{};
+    auto moved_target_status = invoke_query_information_process(target, moved_target_info, moved_target_return_length);
+
+    expect(moved_target_status.is_success());
+    expect(moved_target_return_length == sizeof(moved_target_info));
+    expect(moved_target_info.peb_base_address != nullptr);
+
+    process_basic_information reused_source_info{};
+    ULONG reused_source_return_length{};
+    auto reused_source_status =
+      invoke_query_information_process(source, reused_source_info, reused_source_return_length);
+
+    expect(reused_source_status.is_success());
+    expect(reused_source_return_length == sizeof(reused_source_info));
+    expect(reused_source_info.peb_base_address != nullptr);
   };
 
 #ifdef OMNI_HAS_CACHING
