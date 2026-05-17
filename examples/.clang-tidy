@@ -1,3 +1,5 @@
 InheritParentConfig: true
 Checks: >
   -bugprone-exception-escape,
+  -bugprone-use-after-move,
+  -hicpp-invalid-access-moved,
