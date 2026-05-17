@@ -262,18 +262,17 @@ ut::suite<"omni::syscall"> syscall_suite = [] {
     expect(fatal(named_export.present()));
     expect(fatal(syscall_id.has_value()));
 
-    auto invoke_query_information_process = [&](omni::shellcode_syscall_invoker& invoker,
-                                                process_basic_information& syscall_info,
-                                                ULONG& syscall_return_length) {
-      syscall_info = {};
-      syscall_return_length = 0U;
-      return invoker.template operator()<omni::status>(*syscall_id,
-        ::GetCurrentProcess(),
-        0U,
-        &syscall_info,
-        sizeof(syscall_info),
-        &syscall_return_length);
-    };
+    auto invoke_query_information_process =
+      [&](omni::shellcode_syscall_invoker& invoker, process_basic_information& syscall_info, ULONG& syscall_return_length) {
+        syscall_info = {};
+        syscall_return_length = 0U;
+        return invoker.template operator()<omni::status>(*syscall_id,
+          ::GetCurrentProcess(),
+          0U,
+          &syscall_info,
+          sizeof(syscall_info),
+          &syscall_return_length);
+      };
 
     omni::shellcode_syscall_invoker source;
 
@@ -297,8 +296,7 @@ ut::suite<"omni::syscall"> syscall_suite = [] {
 
     process_basic_information reused_source_info{};
     ULONG reused_source_return_length{};
-    auto reused_source_status =
-      invoke_query_information_process(source, reused_source_info, reused_source_return_length);
+    auto reused_source_status = invoke_query_information_process(source, reused_source_info, reused_source_return_length);
 
     expect(reused_source_status.is_success());
     expect(reused_source_return_length == sizeof(reused_source_info));
@@ -312,18 +310,17 @@ ut::suite<"omni::syscall"> syscall_suite = [] {
     expect(fatal(named_export.present()));
     expect(fatal(syscall_id.has_value()));
 
-    auto invoke_query_information_process = [&](omni::shellcode_syscall_invoker& invoker,
-                                                process_basic_information& syscall_info,
-                                                ULONG& syscall_return_length) {
-      syscall_info = {};
-      syscall_return_length = 0U;
-      return invoker.template operator()<omni::status>(*syscall_id,
-        ::GetCurrentProcess(),
-        0U,
-        &syscall_info,
-        sizeof(syscall_info),
-        &syscall_return_length);
-    };
+    auto invoke_query_information_process =
+      [&](omni::shellcode_syscall_invoker& invoker, process_basic_information& syscall_info, ULONG& syscall_return_length) {
+        syscall_info = {};
+        syscall_return_length = 0U;
+        return invoker.template operator()<omni::status>(*syscall_id,
+          ::GetCurrentProcess(),
+          0U,
+          &syscall_info,
+          sizeof(syscall_info),
+          &syscall_return_length);
+      };
 
     omni::shellcode_syscall_invoker source;
     omni::shellcode_syscall_invoker target;
@@ -348,8 +345,7 @@ ut::suite<"omni::syscall"> syscall_suite = [] {
 
     process_basic_information reused_source_info{};
     ULONG reused_source_return_length{};
-    auto reused_source_status =
-      invoke_query_information_process(source, reused_source_info, reused_source_return_length);
+    auto reused_source_status = invoke_query_information_process(source, reused_source_info, reused_source_return_length);
 
     expect(reused_source_status.is_success());
     expect(reused_source_return_length == sizeof(reused_source_info));
