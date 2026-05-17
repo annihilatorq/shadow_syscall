@@ -9,7 +9,6 @@
 
 namespace {
 
-  using named_ntstatus = std::pair<std::string_view, omni::ntstatus>;
   using named_status = std::pair<std::string_view, omni::status>;
 
   [[nodiscard]] std::string_view to_string(omni::severity severity) {
@@ -37,12 +36,6 @@ namespace {
       static_cast<std::uint16_t>(status.code()));
   }
 
-  [[nodiscard]] named_status make_named_status(named_ntstatus item) {
-    omni::status status{};
-    status = item.second;
-    return {item.first, status};
-  }
-
   [[nodiscard]] bool is_failure_status(const named_status& item) {
     return !item.second.is_success();
   }
@@ -51,23 +44,21 @@ namespace {
 
 int main() {
   constexpr std::array cases{
-    named_ntstatus{"success", omni::ntstatus::success},
-    named_ntstatus{"timeout", omni::ntstatus::timeout},
-    named_ntstatus{"no_more_entries", omni::ntstatus::no_more_entries},
-    named_ntstatus{"access_denied", omni::ntstatus::access_denied},
+    named_status{"success", omni::ntstatus::success},
+    named_status{"timeout", omni::ntstatus::timeout},
+    named_status{"no_more_entries", omni::ntstatus::no_more_entries},
+    named_status{"access_denied", omni::ntstatus::access_denied},
   };
 
   std::println("NTSTATUS decoding helpers:");
-  for (auto [label, code] : cases) {
-    omni::status status{};
-    status = code;
+  for (auto [label, status] : cases) {
     print_status(label, status);
   }
 
   std::println();
 
   std::println("Ranges make it easy to focus on the failure cases:");
-  auto failure_cases = cases | std::views::transform(make_named_status) | std::views::filter(is_failure_status);
+  auto failure_cases = cases | std::views::filter(is_failure_status);
   for (auto [label, status] : failure_cases) {
     print_status(label, status);
   }

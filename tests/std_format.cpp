@@ -1,5 +1,4 @@
 #include <limits>
-#include <utility>
 
 #include "omni/hash.hpp"
 #include "omni/module_export.hpp"
@@ -45,10 +44,6 @@ ut::suite<"std::format"> std_format_suite = [] {
     expect(std::format("{}", omni::address{}) == "0");
     expect(std::format("{}", omni::address{1000}) == "1000");
     expect(std::format("{}", omni::address{max_uintptr_t}) == std::to_string(max_uintptr_t));
-  };
-
-  "formats omni::ntstatus"_test = [] {
-    expect(std::format("{}", omni::ntstatus::access_violation) == "3221225477");
   };
 
   "formats omni::status"_test = [] {
