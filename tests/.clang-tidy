@@ -7,3 +7,5 @@ Checks: >
   -bugprone-exception-escape,
   -hicpp-special-member-functions,
   -cppcoreguidelines-special-member-functions,
+  -bugprone-use-after-move,
+  -hicpp-invalid-access-moved,
