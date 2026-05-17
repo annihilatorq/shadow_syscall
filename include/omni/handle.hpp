@@ -5,24 +5,33 @@
 
 #include "omni/detail/config.hpp"
 #include "omni/status.hpp"
-#include "omni/syscall.hpp"
+
+#ifdef OMNI_ARCH_X64
+#  include "omni/syscall.hpp"
+#else
+#  include "omni/lazy_import.hpp"
+#endif
 
 namespace omni {
 
   using native_handle = void*;
 
   namespace detail {
-    class nt_close_syscaller {
+    class nt_close_invoker {
      public:
       [[nodiscard]] omni::status operator()(native_handle handle) {
-        return syscaller_.try_invoke(handle).value_or(ntstatus::procedure_not_found);
+        return invoker_.try_invoke(handle).value_or(ntstatus::procedure_not_found);
       }
 
      private:
-#ifdef OMNI_HAS_INLINE_SYSCALL
-      omni::inline_syscaller<omni::status> syscaller_{"NtClose"};
+#ifdef OMNI_ARCH_X64
+#  ifdef OMNI_HAS_INLINE_SYSCALL
+      omni::inline_syscaller<omni::status> invoker_{"NtClose"};
+#  else
+      omni::syscaller<omni::status> invoker_{"NtClose"};
+#  endif
 #else
-      omni::syscaller<omni::status> syscaller_{"NtClose"};
+      omni::lazy_importer<omni::status> invoker_{"NtClose"};
 #endif
     };
 
@@ -30,7 +39,7 @@ namespace omni {
 #ifdef OMNI_HAS_EXCEPTIONS
       try {
 #endif
-        static nt_close_syscaller nt_close_sc;
+        static nt_close_invoker nt_close_sc;
         return nt_close_sc(handle);
 #ifdef OMNI_HAS_EXCEPTIONS
       } catch (const std::bad_alloc&) {
