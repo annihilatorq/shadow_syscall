@@ -56,5 +56,5 @@ jobs:
             -checks=-clang-analyzer-* `
             -source-filter '.*[\\/](tests|examples)[\\/].*' `
             -header-filter '.*[\\/](include|tests|examples)[\\/].*' `
-            -exclude-header-filter '.*[\\/]build[\\/]_deps[\\/].*' `
+            -exclude-header-filter '.*[\\/](build[\\/]_deps|single_header)[\\/].*' `
             -allow-no-checks
