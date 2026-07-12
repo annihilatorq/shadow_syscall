@@ -68,12 +68,12 @@ namespace omni {
     // This ambiguity could be avoided by requiring all library users to pass
     // specifically uintptr_t (x64 - 0ULL, x86 - 0UL), which would create a
     // perfect-match function signature, but would be pretty inconvenient.
-    constexpr explicit address(concepts::nullpointer auto) noexcept { }
+    constexpr explicit address(concepts::nullpointer auto) noexcept {}
 
-    constexpr explicit(false) address(value_type address) noexcept: address_(address) { }
-    constexpr explicit address(concepts::pointer auto ptr) noexcept: address_(reinterpret_cast<value_type>(ptr)) { }
+    constexpr explicit(false) address(value_type address) noexcept: address_(address) {}
+    constexpr explicit address(concepts::pointer auto ptr) noexcept: address_(reinterpret_cast<value_type>(ptr)) {}
     constexpr explicit address(std::ranges::contiguous_range auto range) noexcept
-      : address_(reinterpret_cast<value_type>(range.data())) { }
+      : address_(reinterpret_cast<value_type>(range.data())) {}
 
     address(const address&) = default;
     address(address&&) = default;
@@ -343,7 +343,7 @@ namespace omni::detail {
 
     constexpr fnv1a_hash() = default;
 
-    constexpr explicit(false) fnv1a_hash(value_type value): value_(value) { }
+    constexpr explicit(false) fnv1a_hash(value_type value): value_(value) {}
 
     // Implicit constructor is key here. It allows passing string literals in
     // parameter-list where basic_hash type is expected, using this implicit
@@ -447,7 +447,7 @@ namespace omni {
 
   template <concepts::hash Hasher = default_hash>
   struct hash_pair {
-    consteval hash_pair(Hasher first, Hasher second): first(first), second(second) { }
+    consteval hash_pair(Hasher first, Hasher second): first(first), second(second) {}
 
     Hasher first;
     Hasher second;
@@ -1103,7 +1103,7 @@ namespace omni::detail {
     export_directory_view() = default;
 
     explicit export_directory_view(omni::address module_base) noexcept
-      : module_base_(module_base), export_dir_(win::get_export_directory(module_base)) { }
+      : module_base_(module_base), export_dir_(win::get_export_directory(module_base)) {}
 
     [[nodiscard]] omni::address module_base() const noexcept {
       return module_base_;
@@ -1318,7 +1318,7 @@ namespace omni {
     api_set_hosts() noexcept = default;
 
     api_set_hosts(std::span<const win::api_set_value_entry> entries, omni::address api_set_map_address) noexcept
-      : entries_(entries), api_set_map_address_(api_set_map_address) { }
+      : entries_(entries), api_set_map_address_(api_set_map_address) {}
 
     class iterator {
      public:
@@ -1328,7 +1328,7 @@ namespace omni {
       using pointer = const value_type*;
       using reference = const value_type&;
 
-      iterator() noexcept: index_(0), api_set_map_address_(0) { }
+      iterator() noexcept: index_(0), api_set_map_address_(0) {}
 
       iterator(std::span<const win::api_set_value_entry> entries, omni::address api_set_map_address, std::size_t index = 0)
         : entries_(entries), index_(index), api_set_map_address_(api_set_map_address) {
@@ -1413,7 +1413,7 @@ namespace omni {
 
     api_set(std::wstring_view contract_name, bool sealed, std::span<const win::api_set_value_entry> entries,
       omni::address base) noexcept
-      : contract_name_(contract_name), is_sealed_(sealed), value_entries_(entries), base_(base) { }
+      : contract_name_(contract_name), is_sealed_(sealed), value_entries_(entries), base_(base) {}
 
     // Contract, for example: "api-ms-win-core-com-l1-1-0"
     [[nodiscard]] std::wstring_view contract_name() const noexcept {
@@ -1475,7 +1475,7 @@ namespace omni {
 
 namespace omni {
 
-  struct use_ordinal_t { };
+  struct use_ordinal_t {};
   [[maybe_unused]] constexpr inline use_ordinal_t use_ordinal{};
 
   struct forwarder_string {
@@ -1595,7 +1595,7 @@ namespace omni {
   class named_exports {
    public:
     named_exports() = default;
-    explicit named_exports(omni::address module_base) noexcept: export_dir_view_(module_base) { }
+    explicit named_exports(omni::address module_base) noexcept: export_dir_view_(module_base) {}
 
     [[nodiscard]] std::size_t size() const noexcept {
       return export_dir_view_.names_count();
@@ -1637,7 +1637,7 @@ namespace omni {
       iterator& operator=(iterator&&) = default;
 
       iterator(detail::export_directory_view export_dir_view, std::size_t index) noexcept
-        : export_dir_view_(export_dir_view), index_(index) { }
+        : export_dir_view_(export_dir_view), index_(index) {}
 
       [[nodiscard]] reference operator*() const noexcept {
         ensure_current_export();
@@ -1798,7 +1798,7 @@ namespace omni {
   class ordinal_exports {
    public:
     ordinal_exports() = default;
-    explicit ordinal_exports(omni::address module_base) noexcept: export_dir_view_(module_base) { }
+    explicit ordinal_exports(omni::address module_base) noexcept: export_dir_view_(module_base) {}
 
     [[nodiscard]] std::size_t size() const noexcept {
       return export_dir_view_.functions_count();
@@ -1985,7 +1985,7 @@ namespace omni::win {
 
     constexpr unicode_string() = default;
     constexpr unicode_string(pointer_type buffer, std::uint16_t length, std::uint16_t max_length = 0) noexcept
-      : length_(length), max_length_(max_length), buffer_(buffer) { }
+      : length_(length), max_length_(max_length), buffer_(buffer) {}
 
     unicode_string(const unicode_string& instance) = default;
     unicode_string(unicode_string&& instance) = default;
@@ -2193,7 +2193,7 @@ namespace omni {
   class module {
    public:
     module() = default;
-    explicit module(win::loader_table_entry* module_data): entry_(module_data) { }
+    explicit module(win::loader_table_entry* module_data): entry_(module_data) {}
 
     [[nodiscard]] win::loader_table_entry* entry() noexcept {
       return entry_;
@@ -2575,7 +2575,7 @@ namespace omni {
 
   class api_sets {
    public:
-    api_sets(): api_set_map_(win::PEB::ptr()->api_set_map) { }
+    api_sets(): api_set_map_(win::PEB::ptr()->api_set_map) {}
 
     class iterator {
      public:
@@ -2585,7 +2585,7 @@ namespace omni {
       using pointer = const value_type*;
       using reference = const value_type&;
 
-      iterator() noexcept: api_set_map_(nullptr), index_(0) { }
+      iterator() noexcept: api_set_map_(nullptr), index_(0) {}
 
       iterator(win::api_set_namespace* api_set_map, std::uint32_t index): api_set_map_(api_set_map), index_(index) {
         update_value();
@@ -3333,11 +3333,11 @@ namespace omni {
     };
 
     template <class U, std::uint32_t AF, std::uint32_t PR>
-    explicit constexpr nt_allocator(const nt_allocator<U, AF, PR>&) noexcept: flags_(AF), protect_(PR) { }
+    explicit constexpr nt_allocator(const nt_allocator<U, AF, PR>&) noexcept: flags_(AF), protect_(PR) {}
     constexpr nt_allocator() noexcept = default;
 
     template <typename U>
-    explicit constexpr nt_allocator(const nt_allocator<U>&) noexcept { }
+    explicit constexpr nt_allocator(const nt_allocator<U>&) noexcept {}
 
     [[nodiscard]] pointer allocate(std::size_t n) {
       std::size_t size = n * sizeof(T);
@@ -3488,7 +3488,10 @@ namespace omni {
 } // namespace omni
 
 template <>
-struct std::is_error_code_enum<omni::error> : std::true_type { };
+struct std::is_error_code_enum<omni::error> : std::true_type {};
+
+#include <memory>
+#include <utility>
 
 #include <expected>
 #include <utility>
@@ -3701,13 +3704,13 @@ namespace omni {
   template <typename T>
   class lazy_importer {
    public:
-    explicit lazy_importer(concepts::hash auto export_name): export_(resolve_module_export(export_name)) { }
-    explicit lazy_importer(default_hash export_name): export_(resolve_module_export(export_name)) { }
+    explicit lazy_importer(concepts::hash auto export_name): export_(resolve_module_export(export_name)) {}
+    explicit lazy_importer(default_hash export_name): export_(resolve_module_export(export_name)) {}
 
     template <concepts::hash Hasher>
-    explicit lazy_importer(Hasher export_name, Hasher module_name): export_(resolve_module_export(export_name, module_name)) { }
+    explicit lazy_importer(Hasher export_name, Hasher module_name): export_(resolve_module_export(export_name, module_name)) {}
     explicit lazy_importer(default_hash export_name, default_hash module_name)
-      : export_(resolve_module_export(export_name, module_name)) { }
+      : export_(resolve_module_export(export_name, module_name)) {}
 
     template <typename... Args>
     std::expected<T, std::error_code> try_invoke(Args&&... args) {
@@ -3947,13 +3950,11 @@ namespace omni::detail {
    public:
     using storage_type = std::array<std::uint8_t, Size>;
 
-    explicit shellcode(storage_type shellcode) noexcept: shellcode_(shellcode) { }
+    explicit shellcode(storage_type shellcode) noexcept: shellcode_(shellcode) {}
 
     shellcode(const shellcode&) = delete;
     shellcode(shellcode&& other) noexcept
-      : memory_(std::exchange(other.memory_, nullptr)),
-        allocator_(other.allocator_),
-        shellcode_(std::move(other.shellcode_)) { }
+      : memory_(std::exchange(other.memory_, nullptr)), allocator_(other.allocator_), shellcode_(std::move(other.shellcode_)) {}
     shellcode& operator=(const shellcode&) = delete;
     shellcode& operator=(shellcode&& other) noexcept {
       if (this == std::addressof(other)) {
@@ -4503,7 +4504,7 @@ namespace omni {
     shellcode_syscall_invoker(const shellcode_syscall_invoker&) = delete;
     shellcode_syscall_invoker(shellcode_syscall_invoker&& other) noexcept
       : shellcode(std::move(other.shellcode)),
-        shellcode_state_(std::atomic_ref<std::uint32_t>{other.shellcode_state_}.exchange(0U, std::memory_order_acq_rel)) { }
+        shellcode_state_(std::atomic_ref<std::uint32_t>{other.shellcode_state_}.exchange(0U, std::memory_order_acq_rel)) {}
     shellcode_syscall_invoker& operator=(const shellcode_syscall_invoker&) = delete;
     shellcode_syscall_invoker& operator=(shellcode_syscall_invoker&& other) noexcept {
       if (this == &other) {
@@ -4610,10 +4611,10 @@ namespace omni {
   class syscaller {
    public:
     explicit syscaller(concepts::hash auto export_name, Options options = {})
-      : options_(std::move(options)), syscall_id_(resolve_syscall_id(export_name)) { }
+      : options_(std::move(options)), syscall_id_(resolve_syscall_id(export_name)) {}
 
     explicit syscaller(default_hash export_name, Options options = {})
-      : options_(std::move(options)), syscall_id_(resolve_syscall_id(export_name)) { }
+      : options_(std::move(options)), syscall_id_(resolve_syscall_id(export_name)) {}
 
     template <typename... Args>
     std::expected<T, std::error_code> try_invoke(Args&&... args) {
@@ -4788,15 +4789,6 @@ namespace omni {
 
 } // namespace omni
 
-#include <memory>
-#include <utility>
-
-#ifdef OMNI_ARCH_X64
-
-#else
-
-#endif
-
 namespace omni {
 
   using native_handle = void*;
@@ -4841,10 +4833,10 @@ namespace omni {
     using handle_type = native_handle;
 
     unique_handle() noexcept = default;
-    explicit unique_handle(handle_type handle) noexcept: handle_(handle) { }
+    explicit unique_handle(handle_type handle) noexcept: handle_(handle) {}
 
     unique_handle(const unique_handle&) = delete;
-    unique_handle(unique_handle&& other) noexcept: handle_(other.release()) { }
+    unique_handle(unique_handle&& other) noexcept: handle_(other.release()) {}
 
     unique_handle& operator=(const unique_handle&) = delete;
     unique_handle& operator=(unique_handle&& other) noexcept {
