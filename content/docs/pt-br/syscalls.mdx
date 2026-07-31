@@ -1,0 +1,74 @@
+---
+title: Syscalls
+description: Resolva IDs de syscall e invoque chamadas de sistema através da omni
+---
+
+## Limitação de plataforma
+
+`omni::syscaller` e `omni::syscall` são exclusivos para arquitetura x64.
+
+## `omni::syscaller<T>`
+
+Um wrapper tipado que encontra uma exportação, extrai o ID da syscall a partir de seu stub, prepara a ponte em shellcode e executa a chamada de sistema.
+
+### Construtores
+
+- `syscaller(export_name_hash, syscall_id_parser parser = default_syscall_id_parser)`
+- `syscaller(default_hash, syscall_id_parser parser = default_syscall_id_parser)`
+
+`syscaller<T>::syscall_id_parser` é o tipo do analisador (parser). O parser padrão é `omni::default_syscall_id_parser(const omni::module_export&)`.
+
+### Métodos
+
+| Método | Retorno | Propósito |
+| --- | --- | --- |
+| `try_invoke(args...)` | `std::expected<T, std::error_code>` | executa com diagnósticos |
+| `invoke(args...)` | `T` | executa e retorna valor padrão em caso de falha |
+| `operator()(args...)` | `T` | atalho para `invoke` |
+
+Especializações de ponteiro de função deduzem argumentos e o tipo de retorno a partir da assinatura da função NT.
+
+## `omni::syscall`
+
+Sobrecargas livres oferecem chamadas pontuais e concisas:
+
+- `omni::syscall<T = omni::status>(export_name_hash, args...)`
+- `omni::syscall<F>(export_name_hash, args...)`
+- `omni::syscall<Func, Hasher>(args...)`
+- `omni::syscall<Func>(args...)`
+
+## Exemplos
+
+```cpp
+auto yield_status = omni::syscall<omni::status>("NtYieldExecution");
+```
+
+```cpp
+using nt_query_info_process_fn = omni::status (*)(HANDLE, ULONG, void*, ULONG, ULONG*);
+
+omni::syscaller<nt_query_info_process_fn> query_process{"NtQueryInformationProcess"};
+auto result = query_process.try_invoke(
+  ::GetCurrentProcess(),
+  0U,
+  &process_info,
+  sizeof(process_info),
+  &return_length
+);
+```
+
+```cpp
+auto status = omni::syscall<nt_query_info_process_fn>(
+  "NtQueryInformationProcess",
+  ::GetCurrentProcess(),
+  0U,
+  &process_info,
+  sizeof(process_info),
+  &return_length
+);
+```
+
+## Erros e observações
+
+O `try_invoke()` pode relatar `export_not_found`, `module_not_loaded` ou `syscall_id_not_found`. O último erro significa que a exportação foi encontrada, mas não correspondeu ao padrão esperado do stub de syscall.
+
+Sobrecargas livres sem `try_*` retornam um valor construído por padrão (default-constructed) em caso de falha. O parser padrão não trata hooks ou stubs modificados por EDR.

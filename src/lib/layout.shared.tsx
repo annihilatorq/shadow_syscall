@@ -30,6 +30,19 @@ export const i18nUI = defineI18nUI(i18n, {
     chooseTheme: 'Выбрать тему',
     editOnGithub: 'Редактировать на GitHub',
   },
+  'pt-br': {
+    displayName: localeNames['pt-br'],
+    search: 'Buscar',
+    searchNoResult: 'Nenhum resultado encontrado',
+    toc: 'Nesta página',
+    tocNoHeadings: 'Sem cabeçalhos',
+    lastUpdate: 'Última atualização',
+    chooseLanguage: 'Escolher idioma',
+    nextPage: 'Próxima página',
+    previousPage: 'Página anterior',
+    chooseTheme: 'Escolher tema',
+    editOnGithub: 'Editar no GitHub',
+  },
 });
 
 export function baseOptions(locale: string): BaseLayoutProps {

@@ -1,0 +1,62 @@
+---
+title: Status
+description: Tipos NTSTATUS e verificações utilitárias na omni
+---
+
+## Enumerações
+
+### `omni::severity`
+
+Classifica os bits mais significativos de um valor NTSTATUS:
+
+- `success`
+- `information`
+- `warning`
+- `error`
+
+### `omni::facility`
+
+Representa o subsistema (facility) de status do NT. O enum inclui grupos comuns como `rpc_runtime`, `io_error_code`, `ntwin32`, `graphics_kernel`, `hypervisor` e `security_core`.
+
+### `omni::ntstatus`
+
+Contém constantes NTSTATUS frequentemente utilizadas, incluindo:
+
+- estados de sucesso e informativos: `success`, `pending`, `more_entries`
+- estados de fim de iteração: `no_more_entries`, `no_more_files`
+- erros de validação e busca: `invalid_parameter`, `object_name_not_found`, `procedure_not_found`
+- erros de acesso e memória: `access_denied`, `access_violation`, `no_memory`
+- erros de módulo e recursos: `dll_not_found`, `not_implemented`, `not_supported`, `unsuccessful`
+
+## `omni::status`
+
+Um wrapper leve sobre o valor bruto `NTSTATUS`.
+
+| API | Propósito |
+| --- | --- |
+| `value` | valor de status bruto `std::int32_t` |
+| `operator=(std::int32_t)` | atribui um valor bruto |
+| `operator=(omni::ntstatus)` | atribui a partir do enum |
+| `is_success()` | verifica se é um status não-negativo (sucesso) |
+| `is_information()` | verifica gravidade informativa |
+| `is_warning()` | verifica gravidade de aviso (warning) |
+| `is_error()` | verifica gravidade de erro |
+| `severity()` | retorna `omni::severity` |
+| `facility()` | retorna `omni::facility` |
+| `code()` | retorna os 16 bits inferiores (código de erro) |
+
+O tipo suporta comparações com inteiros brutos, `omni::ntstatus` e outros valores `omni::status`. Também suporta conversão explícita para `bool` e `std::int32_t`, além de `std::formatter` para `omni::status` e `omni::ntstatus`.
+
+## Exemplo
+
+```cpp
+omni::status result = omni::ntstatus::success;
+
+if (result.is_success()) {
+  std::println("status: 0x{:08X}", static_cast<std::uint32_t>(result.value));
+}
+
+if (result == omni::ntstatus::success) {
+  std::println("sucesso exato");
+}
+```

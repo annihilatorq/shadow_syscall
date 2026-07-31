@@ -1,0 +1,76 @@
+---
+title: Exportações
+description: Busca, iteração e resolução de exportações de módulos PE
+---
+
+## Busca por ordinal
+
+`omni::use_ordinal_t` e `omni::use_ordinal` selecionam sobrecargas baseadas em ordinal:
+
+```cpp
+auto exp = omni::get_export(1, L"ntdll.dll", omni::use_ordinal);
+```
+
+## `omni::forwarder_string`
+
+Representa uma string de exportação redirecionada (forwarded export) dividida em partes `module` e `function`.
+
+| Método | Propósito |
+| --- | --- |
+| `parse(string_view)` | analisa a string `module.function` |
+| `is_ordinal()` | verifica se o destino é um ordinal |
+| `to_ordinal()` | converte o destino para um ordinal |
+| `present()` | verifica se ambas as partes não estão vazias |
+
+## `omni::module_export`
+
+| Campo | Significado |
+| --- | --- |
+| `name` | nome da exportação, vazio para exportações apenas por ordinal |
+| `address` | endereço resolvido ou endereço bruto da exportação redirecionada |
+| `ordinal` | ordinal da exportação |
+| `is_forwarded` | indica se a exportação é um redirecionamento (forwarder) |
+| `forwarder_string` | destino redirecionado analisado |
+| `forwarder_api_set` | dados do contrato API-set para redirecionadores de API-set |
+| `module_base` | endereço base do módulo proprietário |
+
+Métodos: `is_ordinal_only()`, `present()` e `operator bool()`. Suporte a formatação via `std::formatter<omni::module_export>`.
+
+## `omni::module_exports`
+
+| Método | Propósito |
+| --- | --- |
+| `size()`, `directory()` | inspeciona metadados da tabela de exportação |
+| `name(index)`, `ordinal(index)`, `address(index)` | lê entradas brutas por índice |
+| `is_export_forwarded(address)` | verifica se um endereço aponta para uma string de redirecionador |
+| `all()` | range sobre todas as exportações |
+| `ordinal()` | range sobre posições de ordinais |
+| `named()` | range sobre exportações nomeadas |
+| `find(export_name_hash)` | busca por nome/hash |
+| `find(ordinal, omni::use_ordinal)` | busca por ordinal |
+| `find_if(predicate)` | busca por predicado |
+
+## Busca livre
+
+`omni::get_export` retorna um `omni::module_export` preenchido ou um valor vazio.
+
+- `omni::get_export(export_name_hash, omni::module module)`
+- `omni::get_export(export_name_hash, module_name_hash)`
+- `omni::get_export(export_name_hash)`
+- `omni::get_export(ordinal, omni::module module, omni::use_ordinal)`
+- `omni::get_export(ordinal, module_name_hash, omni::use_ordinal)`
+
+Redirecionadores (forwarders) são analisados em campos explícitos. Se o módulo de destino estiver carregado, a busca pode resolver o destino final; caso contrário, a exportação retornada permanece legível como dados de redirecionador.
+
+## Exemplo
+
+```cpp
+auto kernel32 = omni::get_module(L"kernel32.dll");
+
+for (const auto& export_entry : kernel32.exports().named() | std::views::take(5)) {
+  std::println("{}", export_entry.name);
+}
+
+auto by_name = kernel32.exports().find("GetCurrentProcessId");
+auto by_ordinal = kernel32.exports().find(1, omni::use_ordinal);
+```

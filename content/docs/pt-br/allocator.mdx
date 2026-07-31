@@ -1,0 +1,55 @@
+---
+title: Alocador
+description: Interface de alocador padrão suportada por NtAllocateVirtualMemory
+---
+
+## Constantes
+
+`omni::mem` contém flags de alocação:
+
+- `commit`
+- `reserve`
+- `commit_reserve`
+- `large_commit`
+- `release`
+
+`omni::mem::page` contém flags de proteção de página:
+
+- `no_access`
+- `read_only`
+- `read_write`
+- `execute`
+- `execute_read`
+- `execute_read_write`
+- `guard`
+- `no_cache`
+- `write_combine`
+
+## `omni::nt_allocator<T, AllocFlags, Protect>`
+
+Um tipo compatível com o alocador padrão do C++ suportado por `NtAllocateVirtualMemory` e `NtFreeVirtualMemory`.
+
+| Método | Propósito |
+| --- | --- |
+| `allocate(n)` | aloca memória para `n` elementos |
+| `allocate(address, n)` | solicita alocação em um endereço específico |
+| `deallocate(ptr, n)` | libera a memória alocada |
+
+O alocador expõe os typedefs comuns de alocadores, `rebind`, operadores de igualdade e `is_always_equal`. Em caso de falha na alocação, ele lança `std::bad_alloc` quando exceções estão ativadas; caso contrário, encerra o programa (terminate).
+
+## Aliases
+
+- `omni::rw_allocator<T>` — memória de leitura/escrita (read/write)
+- `omni::rx_allocator<T>` — memória de execução/leitura (execute/read)
+- `omni::rwx_allocator<T>` — memória de execução/leitura/escrita (execute/read/write)
+
+## Exemplo
+
+```cpp
+auto allocator = omni::rw_allocator<std::byte>{};
+auto* page = allocator.allocate(4096);
+auto view = std::span<std::byte>{page, 4096};
+
+std::ranges::fill(view, std::byte{0});
+allocator.deallocate(page, 4096);
+```

@@ -1,0 +1,64 @@
+---
+title: Módulos
+description: Acesso à lista do carregador (loader list) e módulos carregados através da omni
+---
+
+## `omni::module`
+
+`omni::module` é uma visão leve de uma imagem carregada a partir da lista do carregador do processo.
+
+| Método | Propósito |
+| --- | --- |
+| `entry()`, `loader_entry()` | acessa a entrada subjacente do carregador |
+| `image()` | retorna `win::image*` para acesso aos cabeçalhos PE |
+| `base_address()`, `native_handle()` | retorna o endereço base do módulo |
+| `entry_point()` | retorna o ponto de entrada da imagem (entry point) |
+| `name()`, `wname()` | retorna o nome do módulo em formato ANSI ou wide |
+| `system_path()` | retorna o caminho completo do módulo |
+| `exports()` | retorna `omni::module_exports` |
+| `present()`, `operator bool()` | verifica se a visão do módulo é válida |
+| `matches_name_hash(hash)` | compara com o hash do nome de um módulo |
+
+Suporte a `std::formatter<omni::module>` e saída em stream estão disponíveis para formatação.
+
+## `omni::modules`
+
+`omni::modules` é um range bidirecional sobre a lista do carregador no PEB.
+
+| Método | Propósito |
+| --- | --- |
+| `begin()`, `end()` | itera sobre os módulos carregados |
+| `skip(count = 1)` | ignora as entradas iniciais da lista do carregador |
+| `find(module_name_hash)` | busca pelo hash do nome do módulo |
+| `find(omni::address)` | busca pelo endereço base |
+| `find_if(predicate)` | busca por um predicado personalizado |
+| `contains(...)` | verifica se um módulo está carregado |
+
+## Funções utilitárias
+
+- `omni::base_module()` retorna o módulo da imagem do processo atual.
+- `omni::get_module(module_name_hash)` busca um módulo carregado por nome.
+- `omni::get_module(omni::address)` busca um módulo por endereço base.
+
+A correspondência de nomes aceita tanto `kernel32.dll` quanto `kernel32` quando o nome real do módulo possui o sufixo `.dll`.
+
+## Exemplo
+
+```cpp
+#include "omni/modules.hpp"
+
+#include <print>
+#include <ranges>
+
+int main() {
+  auto self = omni::base_module();
+  auto kernel32 = omni::get_module(L"kernel32.dll");
+
+  std::println("imagem atual: {}", self.name());
+  std::println("kernel32 base: {:#x}", kernel32.base_address().value());
+
+  for (const auto& module : omni::modules{} | std::views::take(5)) {
+    std::println("{}", module.name());
+  }
+}
+```

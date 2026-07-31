@@ -1,0 +1,76 @@
+---
+title: Início Rápido
+description: Início rápido com a omni e uma visão geral dos principais cenários de uso
+---
+
+## Integração
+
+A `omni` é header-only. Adicione o diretório do projeto no CMake e vincule o target exportado:
+
+```cmake
+add_subdirectory(caminho/para/omni)
+target_link_libraries(seu_target PRIVATE omni::omni)
+```
+
+## Requisitos
+
+- Windows
+- CMake 3.21+
+- Compilador com suporte a C++23
+
+## Exemplo mínimo
+
+```cpp
+#include <Windows.h>
+
+#include "omni/modules.hpp"
+#include "omni/syscall.hpp"
+
+#include <cstdint>
+#include <print>
+
+int main() {
+  auto kernel32 = omni::get_module(L"kernel32.dll");
+  auto yield_status = omni::syscall("NtYieldExecution");
+
+  std::println("módulo  : {}", kernel32.name());
+  std::println("exports : {}", kernel32.exports().size());
+  std::println("yield   : 0x{:08X}", static_cast<std::uint32_t>(yield_status.value));
+}
+```
+
+## Áreas da API
+
+| Área | Entidades principais |
+| --- | --- |
+| Utilitários | `omni::address`, `omni::fnv1a32`, `omni::fnv1a64`, `omni::default_hash`, `omni::error` |
+| Status | `omni::status`, `omni::severity`, `omni::facility`, `omni::ntstatus` |
+| Módulos | `omni::module`, `omni::modules`, `omni::base_module`, `omni::get_module` |
+| Exportações | `omni::module_export`, `omni::module_exports`, `omni::get_export` |
+| API Sets | `omni::api_set`, `omni::api_sets`, `omni::api_set_host`, `omni::get_api_set` |
+| Lazy Import | `omni::lazy_importer`, `omni::lazy_import` |
+| Syscalls | `omni::syscaller`, `omni::syscall`, `omni::default_syscall_id_parser` |
+| Dados Compartilhados | `omni::shared_user_data`, `omni::win::kernel_user_shared_data` |
+| Memória | `omni::nt_allocator`, `omni::rw_allocator`, `omni::rx_allocator`, `omni::rwx_allocator` |
+
+## Compilando exemplos e testes
+
+```bash
+cmake -S . -B build -DOMNI_BUILD_EXAMPLES=ON -DOMNI_BUILD_TESTS=ON
+cmake --build build --config Release
+ctest --test-dir build --output-on-failure -C Release
+```
+
+## Macros de configuração
+
+| Macro | Efeito |
+| --- | --- |
+| `OMNI_DISABLE_CACHING` | desativa os caches internos de lazy-import e IDs de syscall |
+| `OMNI_ENABLE_ERROR_STRINGS` | mantém strings de erro legíveis em compilações de não-debug (Release) |
+| `OMNI_DISABLE_ERROR_STRINGS` | remove strings de erro mesmo em compilações de debug |
+
+## Observações
+
+- a biblioteca é específica para Windows;
+- a API de syscall é destinada a processos x64;
+- sobrecargas cientes de hash aceitam valores de hash fortemente tipados e literais de string que podem ser convertidos em tempo de compilação.

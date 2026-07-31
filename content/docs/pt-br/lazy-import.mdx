@@ -1,0 +1,81 @@
+---
+title: Lazy Import
+description: Resolva e chame exportações WinAPI sem vinculo direto (direct linking)
+---
+
+## Visão Geral
+
+O lazy import resolve uma exportação no ponto de chamada, evitando que o executável precise ser vinculado diretamente à biblioteca de importação. Você pode usar funções livres simples para chamadas pontuais ou `omni::lazy_importer<T>` para reutilização tipada e acesso a metadados.
+
+## `omni::lazy_importer<T>`
+
+A forma genérica retorna `T`. Especializações de ponteiros de função deduzem os tipos de parâmetros e retorno a partir da assinatura.
+
+### Construtores
+
+- `lazy_importer(export_name_hash)`
+- `lazy_importer(default_hash)`
+- `lazy_importer(export_name_hash, module_name_hash)`
+- `lazy_importer(default_hash, default_hash)`
+
+### Métodos
+
+| Método | Retorno | Propósito |
+| --- | --- | --- |
+| `try_invoke(args...)` | `std::expected<T, std::error_code>` | executa com diagnósticos |
+| `invoke(args...)` | `T` | executa e retorna valor padrão em caso de falha |
+| `operator()(args...)` | `T` | atalho para `invoke` |
+| `module_export()` | `omni::module_export` | inspeciona os metadados da exportação resolvidos |
+
+## `omni::lazy_import`
+
+Sobrecargas livres cobrem os estilos de chamada comuns:
+
+- `omni::lazy_import<T = void>(export_name_hash, args...)`
+- `omni::lazy_import<T = void>(hash_pair, args...)`
+- `omni::lazy_import<F>(export_name_hash, args...)`
+- `omni::lazy_import<F>(hash_pair, args...)`
+- `omni::lazy_import<Func, Hasher>(args...)`
+- `omni::lazy_import<Func>(args...)`
+- `omni::lazy_import<Func, ModuleName, Hasher>(args...)`
+- `omni::lazy_import<Func, ModuleName>(args...)`
+
+## Exemplos
+
+### Importador tipado
+
+```cpp
+using get_module_handle_w_fn = HMODULE(WINAPI*)(LPCWSTR);
+
+auto get_module_handle = omni::lazy_importer<get_module_handle_w_fn>{"GetModuleHandleW"};
+HMODULE kernel32 = get_module_handle(L"kernel32.dll");
+auto export_entry = get_module_handle.module_export();
+```
+
+### Par de exportação e módulo
+
+```cpp
+using get_system_directory_w_fn = UINT(WINAPI*)(LPWSTR, UINT);
+
+auto length = omni::lazy_import<get_system_directory_w_fn>(
+  {"GetSystemDirectoryW", "kernel32.dll"},
+  buffer.data(),
+  static_cast<UINT>(buffer.size())
+);
+```
+
+### Ponteiro de função em tempo de compilação
+
+```cpp
+auto process_id = omni::lazy_import<::GetCurrentProcessId>();
+```
+
+### Tipo de retorno genérico
+
+```cpp
+omni::lazy_import<void>("SetLastError", 0xCAFEU);
+```
+
+## Erros e cache
+
+O `try_invoke()` pode relatar `module_not_loaded`, `export_not_found` ou `forwarder_string_invalid`. A menos que `OMNI_DISABLE_CACHING` esteja definido, as exportações resolvidas são mantidas em cache e entradas obsoletas são atualizadas quando o módulo proprietário não estiver mais carregado.

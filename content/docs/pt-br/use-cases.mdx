@@ -1,0 +1,438 @@
+---
+title: Casos de Uso
+description: Tutoriais passo a passo para os principais cenários de uso da omni
+---
+
+# Casos de Uso
+
+Esta página mostra como as APIs públicas se encaixam em fluxos de trabalho reais. Os exemplos são baseados nos programas independentes em `omni-lib/examples`.
+
+## Inspecionar um endereço bruto e chamar código através dele
+
+Use `omni::address` quando precisar de aritmética de ponteiro tipada, visões de range sobre memória bruta, verificações de intervalo de endereço ou invocação via ponteiro de função resolvido.
+
+```cpp
+#include <Windows.h>
+
+#include "omni/address.hpp"
+#include "omni/modules.hpp"
+
+#include <array>
+#include <print>
+#include <ranges>
+#include <span>
+
+int main() {
+  auto values = std::array{1U, 2U, 3U, 4U};
+  auto values_address = omni::address{values};
+  auto view = values_address.span<unsigned>(values.size());
+
+  std::println("base: {:#x}", values_address.value());
+  std::println("segundo: {}", *values_address.offset<const unsigned*>(sizeof(unsigned)));
+
+  for (auto value : view | std::views::transform([](unsigned v) { return v * 10U; })) {
+    std::println("{}", value);
+  }
+
+  auto* kernel32_handle = ::GetModuleHandleW(L"kernel32.dll");
+  auto kernel32 = omni::get_module(L"kernel32.dll");
+  auto get_current_process_id = omni::address{::GetProcAddress(kernel32_handle, "GetCurrentProcessId")};
+
+  auto image_size = kernel32.image()->get_optional_header()->size_image;
+  auto inside = get_current_process_id.is_in_range(
+    kernel32.base_address(),
+    kernel32.base_address().offset(image_size)
+  );
+
+  auto process_id = get_current_process_id.invoke<DWORD>();
+  std::println("dentro de kernel32: {}", inside);
+  std::println("pid: {}", process_id.value_or(0U));
+}
+```
+
+Pontos importantes:
+
+- `span<T>()` é útil quando a memória bruta deve entrar em uma pipeline de ranges;
+- `is_in_range()` combina naturalmente com o endereço base do módulo e o tamanho da imagem;
+- `invoke<T>()` retorna um objeto de resultado, portanto trate o caminho de falha.
+
+Veja também: [Utilitários](utilities), [Módulos](modules).
+
+## Alocar memória virtual com um alocador padrão
+
+Use `omni::nt_allocator` e seus aliases quando uma interface de alocador padrão deve alocar memória via `NtAllocateVirtualMemory`.
+
+```cpp
+#include "omni/allocator.hpp"
+
+#include <algorithm>
+#include <cstddef>
+#include <numeric>
+#include <ranges>
+#include <span>
+
+int main() {
+  auto allocator = omni::rw_allocator<std::byte>{};
+  auto* page = allocator.allocate(4096);
+  auto page_view = std::span<std::byte>{page, 4096};
+
+  std::ranges::fill(page_view, std::byte{0});
+
+  auto values = std::span<std::uint32_t>{reinterpret_cast<std::uint32_t*>(page), 16};
+  std::ranges::iota(values, 1U);
+
+  for (auto value : values | std::views::transform([](auto v) { return v * v; })) {
+    std::println("{}", value);
+  }
+
+  allocator.deallocate(page, 4096);
+}
+```
+
+Pontos importantes:
+
+- escolha `rw_allocator`, `rx_allocator` ou `rwx_allocator` de acordo com a proteção de página necessária;
+- alinhe cada `allocate()` manual com um `deallocate()`;
+- falha de alocação lança `std::bad_alloc` quando exceções estão ativadas.
+
+Veja também: [Alocador](allocator).
+
+## Inspecionar módulos carregados como um range do C++
+
+Use `omni::modules` para percorrer a lista do carregador do processo, filtrar módulos, encontrar um módulo por nome ou endereço base e inspecionar metadados de módulos.
+
+```cpp
+#include "omni/modules.hpp"
+
+#include <print>
+#include <ranges>
+
+bool is_interesting(const omni::module& module) {
+  return module.matches_name_hash(L"ntdll") || module.matches_name_hash(L"kernel32");
+}
+
+int main() {
+  omni::modules loaded_modules{};
+
+  for (const auto& module : loaded_modules | std::views::filter(is_interesting)) {
+    std::println("{} base={:#x} exports={}",
+      module.name(),
+      module.base_address().value(),
+      module.exports().size());
+  }
+
+  auto kernel32 = loaded_modules.find(L"kernel32");
+  if (kernel32 != loaded_modules.end()) {
+    std::println("caminho: {}", kernel32->system_path().string());
+    std::println("contém a base: {}", loaded_modules.contains(kernel32->base_address()));
+  }
+}
+```
+
+Pontos importantes:
+
+- a busca por nome de módulo aceita nomes com ou sem o sufixo `.dll`;
+- `skip()` pode ser usado se você quiser ignorar a entrada da imagem do processo;
+- `omni::base_module()` é a maneira mais rápida de obter a imagem atual.
+
+Veja também: [Módulos](modules), [Exportações](exports).
+
+## Inspecionar um módulo e suas exportações
+
+Use `omni::module` e `omni::module_exports` quando precisar de metadados PE e iteração sobre a tabela de exportação.
+
+```cpp
+#include "omni/modules.hpp"
+
+#include <print>
+#include <ranges>
+
+int main() {
+  auto self = omni::base_module();
+  auto kernel32 = omni::get_module(L"kernel32.dll");
+
+  auto* optional_header = self.image()->get_optional_header();
+  std::println("imagem: {}", self.name());
+  std::println("entry : {:#x}", self.entry_point().value());
+  std::println("tamanho: {}", optional_header->size_image);
+
+  for (const auto& export_entry : kernel32.exports().named() | std::views::take(5)) {
+    std::println("{}", export_entry.name);
+  }
+}
+```
+
+Pontos importantes:
+
+- `image()` expõe auxiliares públicos da imagem PE;
+- `exports().named()` fornece exportações nomeadas como um range comum;
+- verifique `present()` ou `operator bool()` quando a busca puder falhar.
+
+Veja também: [Módulos](modules), [Exportações](exports).
+
+## Resolver exportações por nome, ordinal e redirecionador (forwarder)
+
+Use `module_exports` quando precisar de acesso detalhado à tabela de exportação, incluindo entradas apenas por ordinal e exportações redirecionadas.
+
+```cpp
+#include "omni/module_exports.hpp"
+#include "omni/modules.hpp"
+
+#include <print>
+#include <ranges>
+
+int main() {
+  auto shlwapi = omni::get_module(L"shlwapi.dll");
+  auto exports = shlwapi.exports();
+
+  for (const auto& entry : exports.named() | std::views::take(10)) {
+    std::println("{:>4} {}", entry.ordinal, entry.name);
+  }
+
+  auto by_name = exports.find("SHUnicodeToAnsiCP");
+  auto by_ordinal = exports.find(1, omni::use_ordinal);
+
+  if (by_name != exports.end() && by_name->is_forwarded) {
+    std::println("forwarder: {}.{}",
+      by_name->forwarder_string.module,
+      by_name->forwarder_string.function);
+  }
+}
+```
+
+Pontos importantes:
+
+- `named()` itera apenas exportações nomeadas, enquanto `ordinal()` cobre slots de ordinais;
+- exportações redirecionadas permanecem legíveis via `forwarder_string`;
+- redirecionadores de API-set também podem expor `forwarder_api_set`.
+
+Veja também: [Exportações](exports), [API Sets](api-sets).
+
+## Resolver e chamar WinAPI sem vínculo direto
+
+Use `lazy_import` para chamadas concisas e `lazy_importer<T>` quando quiser um wrapper tipado reutilizável ou metadados da exportação.
+
+```cpp
+#include <Windows.h>
+
+#include "omni/lazy_import.hpp"
+
+#include <array>
+#include <filesystem>
+#include <print>
+
+using get_module_handle_w_fn = HMODULE(WINAPI*)(LPCWSTR);
+using get_system_directory_w_fn = UINT(WINAPI*)(LPWSTR, UINT);
+
+int main() {
+  auto get_module_handle = omni::lazy_importer<get_module_handle_w_fn>{"GetModuleHandleW"};
+  HMODULE kernel32 = get_module_handle(L"kernel32.dll");
+  auto export_entry = get_module_handle.module_export();
+
+  if (kernel32 == nullptr || !export_entry.present()) {
+    return 1;
+  }
+
+  std::array<wchar_t, MAX_PATH> buffer{};
+  auto length = omni::lazy_import<get_system_directory_w_fn>(
+    {"GetSystemDirectoryW", "kernel32.dll"},
+    buffer.data(),
+    static_cast<UINT>(buffer.size())
+  );
+
+  auto process_id = omni::lazy_import<::GetCurrentProcessId>();
+  omni::lazy_import<void>("SetLastError", 0xCAFEU);
+
+  std::println("tamanho do diretório do sistema: {}", length);
+  std::println("pid: {}", process_id);
+}
+```
+
+Pontos importantes:
+
+- use sobrecargas com pares de hash quando múltiplos módulos puderem exportar o mesmo nome;
+- `try_invoke()` mantém os diagnósticos explícitos;
+- exportações resolvidas são mantidas em cache, a menos que `OMNI_DISABLE_CACHING` esteja definido.
+
+Veja também: [Lazy Import](lazy-import), [Utilitários](utilities).
+
+## Chamar NT syscalls com wrappers tipados
+
+Use `syscall` para chamadas curtas e `syscaller<T>` quando quiser reutilização tipada mais diagnósticos.
+
+```cpp
+#include <Windows.h>
+
+#include "omni/syscall.hpp"
+
+#include <cstdint>
+#include <print>
+
+struct process_basic_information {
+  void* reserved1{};
+  void* peb_base_address{};
+  void* reserved2[2]{};
+  std::uintptr_t unique_process_id{};
+  void* reserved3{};
+};
+
+using nt_query_info_process_fn = omni::status (*)(HANDLE, ULONG, void*, ULONG, ULONG*);
+
+int main() {
+  omni::syscaller<nt_query_info_process_fn> query_process{"NtQueryInformationProcess"};
+
+  process_basic_information info{};
+  ULONG return_length{};
+
+  auto result = query_process.try_invoke(
+    ::GetCurrentProcess(),
+    0U,
+    &info,
+    sizeof(info),
+    &return_length
+  );
+
+  if (!result) {
+    std::println("falha: {}", result.error().message());
+    return 1;
+  }
+
+  auto yield_status = omni::syscall<omni::status>("NtYieldExecution");
+  std::println("pid: {}", info.unique_process_id);
+  std::println("yield sucesso: {}", yield_status.is_success());
+}
+```
+
+Pontos importantes:
+
+- suporte a syscalls é exclusivo para x64;
+- `syscall_id_not_found` significa que a exportação não foi reconhecida como um stub de syscall;
+- o analisador de ID de syscall padrão não trata stubs com hooks ou modificados por EDR.
+
+Veja também: [Syscalls](syscalls), [Status](status).
+
+## Ler dados compartilhados de usuário do Windows
+
+Use `omni::shared_user_data()` para ler o mapeamento `KUSER_SHARED_DATA` no nível de processo.
+
+```cpp
+#include "omni/shared_user_data.hpp"
+
+#include <print>
+
+int main() {
+  const auto* shared = omni::shared_user_data();
+
+  std::println("system root  : {}", shared->system_root().string());
+  std::println("versão       : {}.{} build {}",
+    shared->nt_major_version,
+    shared->nt_minor_version,
+    shared->nt_build_number);
+  std::println("processadores: {}", shared->active_processor_count);
+  std::println("frequência QPC: {}", shared->qpc_frequency);
+}
+```
+
+Pontos importantes:
+
+- o mapeamento é fixado em `0x7ffe0000`;
+- leituras são extremamente rápidas e não exigem uma chamada WinAPI;
+- a estrutura pública expõe muitos campos de nível mais baixo para usuários avançados.
+
+Veja também: [Shared User Data](shared-user-data).
+
+## Decodificar e classificar valores NTSTATUS
+
+Use `omni::status` quando precisar de verificações estruturadas para um resultado `NTSTATUS`.
+
+```cpp
+#include "omni/status.hpp"
+
+#include <cstdint>
+#include <print>
+
+int main() {
+  omni::status status = omni::ntstatus::no_more_entries;
+
+  std::println("bruto: 0x{:08X}", static_cast<std::uint32_t>(status.value));
+  std::println("sucesso: {}", status.is_success());
+  std::println("facility: 0x{:03X}", static_cast<std::uint16_t>(status.facility()));
+  std::println("código: 0x{:04X}", static_cast<std::uint16_t>(status.code()));
+}
+```
+
+Pontos importantes:
+
+- `is_success()` segue a semântica NTSTATUS: valores não-negativos representam sucesso;
+- `severity()`, `facility()` e `code()` decodificam o valor bruto;
+- suporte a formatadores está disponível para valores de status.
+
+Veja também: [Status](status).
+
+## Trabalhar com hashes em tempo de compilação e hashers personalizados
+
+Use tipos de hash quando quiser buscas compactas por hashes pré-calculados ou calculados em tempo de compilação.
+
+```cpp
+#include "omni/hash.hpp"
+#include "omni/modules.hpp"
+
+#include <cstdint>
+
+int main() {
+  constexpr omni::fnv1a32 name32{"NtQueryInformationProcess"};
+  constexpr omni::fnv1a64 name64{"NtQueryInformationProcess"};
+  constexpr omni::hash_pair<> lookup{"GetModuleHandleW", "kernel32.dll"};
+
+  auto kernel32 = omni::get_module(omni::default_hash{L"kernel32.dll"});
+  auto export_entry = omni::get_export(lookup.first, lookup.second);
+}
+```
+
+Pontos importantes:
+
+- os hashes são insensíveis a maiúsculas e minúsculas (ASCII case-insensitive);
+- `omni::default_hash` é `omni::fnv1a64`;
+- hashers personalizados podem ser usados em APIs de módulo, exportação, lazy import e syscall.
+
+Veja também: [Utilitários](utilities).
+
+## Inspecionar a resolução de host do API-set
+
+Use `omni::api_sets` quando precisar inspecionar o esquema do API-set do Windows em execução e resolver os hosts de contrato.
+
+```cpp
+#include "omni/api_sets.hpp"
+
+#include <algorithm>
+#include <print>
+#include <ranges>
+
+int main() {
+  omni::api_sets api_sets{};
+
+  auto api_set = api_sets.find_if([](const omni::api_set& item) {
+    return item.default_host().has_value();
+  });
+
+  if (api_set == api_sets.end()) {
+    return 1;
+  }
+
+  auto default_host = api_set->resolve_host();
+  std::println("contrato: {}", api_set->contract_name());
+  std::println("qtd hosts: {}", api_set->hosts().size());
+
+  for (const auto& host : api_set->hosts() | std::views::take(5)) {
+    std::println("{} -> {}", host.alias.empty() ? L"<default>" : host.alias, host.value);
+  }
+}
+```
+
+Pontos importantes:
+
+- `api_sets` é um range sobre o esquema do processo;
+- `default_host()` retorna uma entrada de host caso o contrato esteja implementado;
+- `resolve_host(alias)` aplica regras de fallback do esquema.
+
+Veja também: [API Sets](api-sets), [Exportações](exports).

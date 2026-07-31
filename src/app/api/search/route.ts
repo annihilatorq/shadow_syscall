@@ -7,5 +7,6 @@ export const { staticGET: GET } = createFromSource(source, {
   localeMap: {
     en: 'english',
     ru: 'russian',
+    'pt-br': 'portuguese',
   },
 });

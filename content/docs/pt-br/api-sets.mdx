@@ -1,0 +1,82 @@
+---
+title: API Sets
+description: Inspecione o esquema de API-sets do Windows através da omni
+---
+
+## Visão Geral
+
+Os API sets do Windows mapeiam nomes de DLLs de contrato para DLLs de implementação. A `omni` expõe o esquema do processo em execução como objetos leves compatíveis com ranges.
+
+## `omni::api_set_host`
+
+Uma entrada de host descreve um mapeamento de implementação.
+
+| Campo ou método | Propósito |
+| --- | --- |
+| `value` | nome da DLL de implementação |
+| `alias` | seletor de alias, vazio para o host padrão |
+| `present()` | verifica se `value` não está vazio |
+| `is_default()` | verifica se `alias` está vazio |
+
+## `omni::api_set_hosts`
+
+Um forward range sobre as entradas de host para um contrato de API-set.
+
+| Método | Propósito |
+| --- | --- |
+| `begin()`, `end()` | itera sobre os hosts |
+| `size()` | quantidade de hosts |
+
+## `omni::api_set`
+
+Representa um contrato de API-set.
+
+| Método | Propósito |
+| --- | --- |
+| `contract_name()` | retorna o nome do contrato |
+| `is_sealed()` | verifica a flag `sealed` do esquema |
+| `hosts()` | retorna `omni::api_set_hosts` |
+| `default_host()` | retorna o host padrão, se presente |
+| `resolve_host(alias = {})` | aplica as regras de resolução de API-set para um alias |
+| `present()`, `operator bool()` | verifica a validade |
+
+## `omni::api_sets`
+
+Um range bidirecional sobre o esquema de API-sets do processo atual.
+
+| Método | Propósito |
+| --- | --- |
+| `begin()`, `end()` | itera sobre os contratos de API-set |
+| `size()` | quantidade de contratos |
+| `find(contract_name_hash)` | localiza um contrato por hash/nome |
+| `find_if(predicate)` | localiza por um predicado |
+
+`omni::get_api_set(contract_name_hash)` é uma função utilitária que retorna um valor `omni::api_set`.
+
+## Exemplo
+
+```cpp
+#include "omni/api_sets.hpp"
+
+#include <print>
+#include <ranges>
+
+int main() {
+  omni::api_sets api_sets{};
+
+  auto api_set = api_sets.find_if([](const omni::api_set& item) {
+    return item.default_host().has_value();
+  });
+
+  if (api_set == api_sets.end()) {
+    return 1;
+  }
+
+  std::println("contrato: {}", api_set->contract_name());
+  std::println("sealed  : {}", api_set->is_sealed());
+
+  for (const auto& host : api_set->hosts() | std::views::take(5)) {
+    std::println("{} -> {}", host.alias.empty() ? L"<default>" : host.alias, host.value);
+  }
+}
+```

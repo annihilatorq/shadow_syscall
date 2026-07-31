@@ -16,6 +16,7 @@ import { useI18n } from 'fumadocs-ui/contexts/i18n';
 
 function getLanguage(locale?: string) {
   if (locale === 'ru') return 'russian';
+  if (locale === 'pt-br') return 'portuguese';
   return 'english';
 }
 

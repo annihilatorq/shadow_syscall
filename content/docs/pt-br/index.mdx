@@ -1,0 +1,58 @@
+---
+title: Introdução
+description: API pública de uma biblioteca C++23 header-only para tarefas de baixo nível no Windows
+---
+
+# omni
+
+A `omni` é uma biblioteca C++23 header-only focada em desenvolvimento de baixo nível para Windows: inspeção de módulos e exportações, leitura de esquemas API-set, imports preguiçosos (lazy imports), syscalls, dados compartilhados de usuário, alocadores e hashing em tempo de compilação.
+
+## API Pública
+
+<Cards>
+  <Card title="Início Rápido" href="quick-start" />
+  <Card title="Casos de Uso" href="use-cases" />
+  <Card title="Utilitários" href="utilities" />
+  <Card title="Status" href="status" />
+  <Card title="Módulos" href="modules" />
+  <Card title="Exportações" href="exports" />
+  <Card title="API Sets" href="api-sets" />
+  <Card title="Lazy Import" href="lazy-import" />
+  <Card title="Syscalls" href="syscalls" />
+  <Card title="Shared User Data" href="shared-user-data" />
+  <Card title="Alocador" href="allocator" />
+</Cards>
+
+## Destaques
+
+- acesso à lista do carregador (loader-list) via `omni::modules` compatível com ranges;
+- análise da tabela de exportação PE via `omni::module_exports` e `omni::module_export`;
+- inspeção do esquema API-set via `omni::api_sets` e `omni::api_set`;
+- chamadas WinAPI via `omni::lazy_import` e `omni::lazy_importer`;
+- chamadas a NT syscalls x64 via `omni::syscall` e `omni::syscaller`;
+- acesso a `KUSER_SHARED_DATA` via `omni::shared_user_data()`;
+- hashes fortemente tipados em tempo de compilação com políticas de hash substituíveis;
+- cache interno opcional para lazy imports e IDs de syscall.
+
+## Escopo
+
+As páginas de referência da API documentam entidades públicas individuais. A página de Casos de Uso mostra fluxos de trabalho completos que as combinam. Este site documenta a API pública voltada ao usuário. Cabeçalhos em `omni/detail/*` são detalhes de implementação e não são tratados como contrato suportado.
+
+## Cabeçalhos públicos
+
+- `omni/omni.hpp`
+- `omni/address.hpp`
+- `omni/allocator.hpp`
+- `omni/api_set.hpp`
+- `omni/api_sets.hpp`
+- `omni/concepts.hpp`
+- `omni/error.hpp`
+- `omni/hash.hpp`
+- `omni/lazy_import.hpp`
+- `omni/module.hpp`
+- `omni/module_export.hpp`
+- `omni/module_exports.hpp`
+- `omni/modules.hpp`
+- `omni/shared_user_data.hpp`
+- `omni/status.hpp`
+- `omni/syscall.hpp`
