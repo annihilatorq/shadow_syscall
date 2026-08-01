@@ -36,7 +36,7 @@ namespace omni::win {
         return result;
       }
 
-      std::u8string utf8_str = to_path().u8string();
+      auto utf8_str = to_path().u8string();
       return {reinterpret_cast<const char*>(utf8_str.data()), utf8_str.size()};
     }
 
