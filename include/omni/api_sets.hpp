@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstdint>
+#include <optional>
 #include <ranges>
 #include <span>
 #include <string_view>
@@ -206,6 +207,19 @@ namespace omni {
 
     [[nodiscard]] iterator find(default_hash contract_name) const noexcept {
       return find<default_hash>(contract_name);
+    }
+
+    [[nodiscard]] std::optional<iterator::value_type> lookup(concepts::hash auto contract_name_hash) const noexcept {
+      auto it = find(contract_name_hash);
+      if (it == end()) {
+        return std::nullopt;
+      }
+
+      return *it;
+    }
+
+    [[nodiscard]] std::optional<iterator::value_type> lookup(default_hash contract_name) const noexcept {
+      return lookup<default_hash>(contract_name);
     }
 
     [[nodiscard]] iterator find_if(std::predicate<iterator::value_type> auto pred) const {

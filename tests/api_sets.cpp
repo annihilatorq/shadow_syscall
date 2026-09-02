@@ -169,7 +169,7 @@ ut::suite<"omni::api_sets"> api_sets_suite = [] {
     }
   };
 
-  "find should accept canonical, versionless, and loader-style contract names"_test = [] {
+  "find and lookup should accept canonical, versionless, and loader-style contract names"_test = [] {
     omni::api_sets api_sets{};
     auto versioned_api_set = api_sets.find_if([](const omni::api_set& api_set) {
       return find_contract_version_suffix(api_set.contract_name()) != std::wstring_view::npos;
@@ -183,9 +183,15 @@ ut::suite<"omni::api_sets"> api_sets_suite = [] {
 
     auto exact_it = api_sets.find(omni::hash<omni::default_hash>(contract_name));
     auto versionless_it = api_sets.find(omni::hash<omni::default_hash>(versionless_contract_name));
+    auto exact_lookup = api_sets.lookup(omni::hash<omni::default_hash>(contract_name));
+    auto versionless_lookup = api_sets.lookup(omni::hash<omni::default_hash>(versionless_contract_name));
 
     expect(fatal(exact_it != api_sets.end()));
     expect(fatal(versionless_it != api_sets.end()));
+    expect(fatal(exact_lookup.has_value()));
+    expect(fatal(versionless_lookup.has_value()));
     expect(versionless_it->contract_name() == exact_it->contract_name());
+    expect(versionless_lookup->contract_name() == exact_lookup->contract_name());
+    expect(!api_sets.lookup(L"omni-contract-that-does-not-exist").has_value());
   };
 };

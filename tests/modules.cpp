@@ -75,7 +75,7 @@ ut::suite<"omni::modules"> modules_suite = [] {
     expect(skipped->wname() == second->wname());
   };
 
-  "find contains and find_if locate kernel32"_test = [] {
+  "find lookup contains and find_if locate kernel32"_test = [] {
     HMODULE kernel32_handle = ::GetModuleHandleW(L"kernel32.dll");
     omni::address kernel32_address{kernel32_handle};
     omni::default_hash kernel32_hash{L"kernel32"};
@@ -86,6 +86,8 @@ ut::suite<"omni::modules"> modules_suite = [] {
     omni::modules loaded_modules{};
     auto by_address = loaded_modules.find(kernel32_address);
     auto by_name = loaded_modules.find(kernel32_hash);
+    auto lookup_by_address = loaded_modules.lookup(kernel32_address);
+    auto lookup_by_name = loaded_modules.lookup(kernel32_hash);
     auto by_predicate = loaded_modules.find_if(
       [kernel32_address](const omni::module& module) { return module.base_address() == kernel32_address; });
 
@@ -95,10 +97,16 @@ ut::suite<"omni::modules"> modules_suite = [] {
 
     expect(by_address != loaded_modules.end());
     expect(by_name != loaded_modules.end());
+    expect(fatal(lookup_by_address.has_value()));
+    expect(fatal(lookup_by_name.has_value()));
     expect(by_predicate != loaded_modules.end());
+    expect(!loaded_modules.lookup(omni::address{}).has_value());
+    expect(!loaded_modules.lookup("omni-module-that-does-not-exist").has_value());
 
     expect(by_address->base_address() == kernel32_address);
     expect(by_name->base_address() == kernel32_address);
+    expect(lookup_by_address->base_address() == kernel32_address);
+    expect(lookup_by_name->base_address() == kernel32_address);
     expect(by_predicate->base_address() == kernel32_address);
   };
 

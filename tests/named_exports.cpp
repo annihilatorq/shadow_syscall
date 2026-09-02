@@ -20,6 +20,7 @@ ut::suite<"omni::named_exports"> named_exports_suite = [] {
     expect(exports.size() == 0U);
     expect(exports.begin() == exports.end());
     expect(exports.find("GetProcAddress") == exports.end());
+    expect(!exports.lookup("GetProcAddress").has_value());
     expect(exports.find_if([](const omni::named_export&) { return true; }) == exports.end());
   };
 
@@ -72,7 +73,7 @@ ut::suite<"omni::named_exports"> named_exports_suite = [] {
     expect(last_export->address == named_export_entries.back().address);
   };
 
-  "find and find_if match GetProcAddress for name lookup"_test = [] {
+  "find lookup and find_if match GetProcAddress for name lookup"_test = [] {
     tests::loaded_library version_dll{L"version.dll"};
     omni::module version_module = tests::get_loaded_module(version_dll.handle);
     omni::named_exports exports = version_module.named_exports();
@@ -82,6 +83,7 @@ ut::suite<"omni::named_exports"> named_exports_suite = [] {
     FARPROC export_address = ::GetProcAddress(version_dll.handle, "GetFileVersionInfoSizeW");
 
     auto by_name = exports.find("GetFileVersionInfoSizeW");
+    auto by_lookup = exports.lookup("GetFileVersionInfoSizeW");
     auto by_predicate = exports.find_if(
       [export_address](const omni::named_export& named_export) { return named_export.address == export_address; });
 
@@ -91,11 +93,16 @@ ut::suite<"omni::named_exports"> named_exports_suite = [] {
     expect(fatal(export_address != nullptr));
 
     expect(by_name != exports.end());
+    expect(fatal(by_lookup.has_value()));
     expect(by_predicate != exports.end());
 
     expect(by_name->name == export_entry->name);
     expect(by_name->address == export_address);
     expect(by_name->module_base == version_module.base_address());
+
+    expect(by_lookup->name == export_entry->name);
+    expect(by_lookup->address == export_address);
+    expect(by_lookup->module_base == version_module.base_address());
 
     expect(by_predicate->name == by_name->name);
     expect(by_predicate->address == by_name->address);

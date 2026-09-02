@@ -2,6 +2,7 @@
 
 #include <cstddef>
 #include <iterator>
+#include <optional>
 #include <ranges>
 #include <string_view>
 
@@ -176,6 +177,19 @@ namespace omni {
 
     [[nodiscard]] iterator find(default_hash export_name) const noexcept {
       return find_by_hashed_name(export_name);
+    }
+
+    [[nodiscard]] std::optional<iterator::value_type> lookup(concepts::hash auto export_name) const noexcept {
+      auto it = find(export_name);
+      if (it == end()) {
+        return std::nullopt;
+      }
+
+      return *it;
+    }
+
+    [[nodiscard]] std::optional<iterator::value_type> lookup(default_hash export_name) const noexcept {
+      return lookup<default_hash>(export_name);
     }
 
     [[nodiscard]] iterator find_if(std::predicate<const typename iterator::value_type&> auto predicate) const {

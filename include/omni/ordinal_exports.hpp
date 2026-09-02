@@ -2,6 +2,7 @@
 
 #include <cstddef>
 #include <iterator>
+#include <optional>
 #include <ranges>
 
 #include "omni/address.hpp"
@@ -157,6 +158,15 @@ namespace omni {
       }
 
       return {export_dir_view_, function_index};
+    }
+
+    [[nodiscard]] std::optional<iterator::value_type> lookup(std::uint32_t ordinal) const noexcept {
+      auto it = find(ordinal);
+      if (it == end()) {
+        return std::nullopt;
+      }
+
+      return *it;
     }
 
     [[nodiscard]] iterator find_if(std::predicate<const typename iterator::value_type&> auto predicate) const {

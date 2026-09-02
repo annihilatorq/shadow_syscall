@@ -1,6 +1,7 @@
 ﻿#pragma once
 
 #include <iterator>
+#include <optional>
 #include <ranges>
 
 #include "omni/address.hpp"
@@ -141,6 +142,28 @@ namespace omni {
     [[nodiscard]] iterator find(omni::address base_address) const {
       return std::ranges::find_if(*this,
         [base_address](const iterator::value_type& module_entry) { return module_entry.base_address() == base_address; });
+    }
+
+    [[nodiscard]] std::optional<iterator::value_type> lookup(concepts::hash auto module_name) const {
+      auto it = find(module_name);
+      if (it == end()) {
+        return std::nullopt;
+      }
+
+      return *it;
+    }
+
+    [[nodiscard]] std::optional<iterator::value_type> lookup(default_hash module_name) const {
+      return lookup<default_hash>(module_name);
+    }
+
+    [[nodiscard]] std::optional<iterator::value_type> lookup(omni::address base_address) const {
+      auto it = find(base_address);
+      if (it == end()) {
+        return std::nullopt;
+      }
+
+      return *it;
     }
 
     [[nodiscard]] iterator find_if(std::predicate<typename iterator::value_type> auto predicate) const {

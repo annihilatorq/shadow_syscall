@@ -20,6 +20,7 @@ ut::suite<"omni::ordinal_exports"> ordinal_exports_suite = [] {
     expect(exports.size() == 0U);
     expect(exports.begin() == exports.end());
     expect(exports.find(1U) == exports.end());
+    expect(!exports.lookup(1U).has_value());
     expect(exports.find_if([](const omni::ordinal_export&) { return true; }) == exports.end());
   };
 
@@ -72,7 +73,7 @@ ut::suite<"omni::ordinal_exports"> ordinal_exports_suite = [] {
     expect(last_export->address == export_entries.back().address);
   };
 
-  "find and find_if match GetProcAddress for ordinal lookup"_test = [] {
+  "find lookup and find_if match GetProcAddress for ordinal lookup"_test = [] {
     tests::loaded_library version_dll{L"version.dll"};
     omni::module version_module = tests::get_loaded_module(version_dll.handle);
     omni::ordinal_exports exports = version_module.ordinal_exports();
@@ -82,6 +83,7 @@ ut::suite<"omni::ordinal_exports"> ordinal_exports_suite = [] {
     FARPROC export_address = ::GetProcAddress(version_dll.handle, "GetFileVersionInfoSizeW");
 
     auto by_ordinal = exports.find(export_entry == nullptr ? 0U : export_entry->ordinal);
+    auto by_lookup = exports.lookup(export_entry == nullptr ? 0U : export_entry->ordinal);
     auto by_predicate = exports.find_if(
       [export_address](const omni::ordinal_export& ordinal_export) { return ordinal_export.address == export_address; });
 
@@ -91,11 +93,16 @@ ut::suite<"omni::ordinal_exports"> ordinal_exports_suite = [] {
     expect(fatal(export_address != nullptr));
 
     expect(by_ordinal != exports.end());
+    expect(fatal(by_lookup.has_value()));
     expect(by_predicate != exports.end());
 
     expect(by_ordinal->ordinal == export_entry->ordinal);
     expect(by_ordinal->address == export_address);
     expect(by_ordinal->module_base == version_module.base_address());
+
+    expect(by_lookup->ordinal == export_entry->ordinal);
+    expect(by_lookup->address == export_address);
+    expect(by_lookup->module_base == version_module.base_address());
 
     expect(by_predicate->ordinal == by_ordinal->ordinal);
     expect(by_predicate->address == by_ordinal->address);
