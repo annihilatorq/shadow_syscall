@@ -528,6 +528,7 @@ struct std::formatter<omni::fnv1a64> : std::formatter<omni::fnv1a64::value_type>
 
 #include <concepts>
 #include <cstddef>
+#include <optional>
 #include <ranges>
 
 #include <cstdint>
@@ -686,6 +687,7 @@ namespace omni::concepts {
                            { range.begin() } -> std::same_as<typename Range::iterator>;
                            { range.end() } -> std::same_as<typename Range::iterator>;
                            { range.find(key) } -> std::same_as<typename Range::iterator>;
+                           { range.lookup(key) } -> std::same_as<std::optional<Value>>;
                            {
                              range.find_if([](const Value&) { return true; })
                            } -> std::same_as<typename Range::iterator>;
