@@ -89,10 +89,10 @@ int main() {
     std::println("First module with more than 1500 exports: {}", first_large_export_module->name());
   }
 
-  auto kernel32 = loaded_modules.find(L"kernel32");
-  if (kernel32 != loaded_modules.end()) {
+  auto kernel32 = loaded_modules.lookup(L"kernel32");
+  if (kernel32.has_value()) {
     std::println();
-    std::println("Find/contains work with loader names and base addresses:");
+    std::println("Lookup/contains work with loader names and base addresses:");
     std::println(R"(  contains("kernel32")  : {})", loaded_modules.contains(L"kernel32"));
     std::println("  contains(base)        : {}", loaded_modules.contains(kernel32->base_address()));
     std::println("  kernel32 path         : {}", kernel32->system_path().string());

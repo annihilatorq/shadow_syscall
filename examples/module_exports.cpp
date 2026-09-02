@@ -90,8 +90,8 @@ int main() {
   }
 
   auto forwarded_export = omni::named_export{};
-  auto shunicode_to_ansi_cp = named_exports.find("SHUnicodeToAnsiCP");
-  if (shunicode_to_ansi_cp != named_exports.end() && shunicode_to_ansi_cp->is_forwarded()) {
+  auto shunicode_to_ansi_cp = named_exports.lookup("SHUnicodeToAnsiCP");
+  if (shunicode_to_ansi_cp.has_value() && shunicode_to_ansi_cp->is_forwarded()) {
     forwarded_export = *shunicode_to_ansi_cp;
   } else {
     auto first_named_forwarder = std::ranges::find_if(named_exports, is_named_forwarded_export);
