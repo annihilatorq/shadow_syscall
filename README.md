@@ -93,6 +93,7 @@ This means:
 - `named_exports().size()` can be smaller than `ordinal_exports().size()`.
 - Iterator order matches the underlying PE tables, not a re-sorted or normalized view.
 - `ordinal_exports().find(ordinal)` expects the real ordinal value, not a zero-based index.
+- `lookup(key)` performs the same search as `find(key)` and returns an owning `std::optional<value_type>`.
 
 Both enumerators expose raw export-table data. Forwarded entries stay visible as forwarded entries:
 
