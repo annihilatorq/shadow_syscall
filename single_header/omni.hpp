@@ -510,6 +510,7 @@ struct std::formatter<omni::fnv1a64> : std::formatter<omni::fnv1a64::value_type>
 };
 
 #include <iterator>
+#include <optional>
 #include <ranges>
 
 #include <cassert>
@@ -521,6 +522,7 @@ struct std::formatter<omni::fnv1a64> : std::formatter<omni::fnv1a64::value_type>
 
 #include <cstddef>
 #include <iterator>
+#include <optional>
 #include <ranges>
 #include <string_view>
 
@@ -1756,6 +1758,19 @@ namespace omni {
       return find_by_hashed_name(export_name);
     }
 
+    [[nodiscard]] std::optional<iterator::value_type> lookup(concepts::hash auto export_name) const noexcept {
+      auto it = find(export_name);
+      if (it == end()) {
+        return std::nullopt;
+      }
+
+      return *it;
+    }
+
+    [[nodiscard]] std::optional<iterator::value_type> lookup(default_hash export_name) const noexcept {
+      return lookup<default_hash>(export_name);
+    }
+
     [[nodiscard]] iterator find_if(std::predicate<const typename iterator::value_type&> auto predicate) const {
       if (directory() == nullptr) {
         return end();
@@ -1791,6 +1806,7 @@ namespace omni {
 
 #include <cstddef>
 #include <iterator>
+#include <optional>
 #include <ranges>
 
 namespace omni {
@@ -1941,6 +1957,15 @@ namespace omni {
       }
 
       return {export_dir_view_, function_index};
+    }
+
+    [[nodiscard]] std::optional<iterator::value_type> lookup(std::uint32_t ordinal) const noexcept {
+      auto it = find(ordinal);
+      if (it == end()) {
+        return std::nullopt;
+      }
+
+      return *it;
     }
 
     [[nodiscard]] iterator find_if(std::predicate<const typename iterator::value_type&> auto predicate) const {
@@ -2454,6 +2479,28 @@ namespace omni {
         [base_address](const iterator::value_type& module_entry) { return module_entry.base_address() == base_address; });
     }
 
+    [[nodiscard]] std::optional<iterator::value_type> lookup(concepts::hash auto module_name) const {
+      auto it = find(module_name);
+      if (it == end()) {
+        return std::nullopt;
+      }
+
+      return *it;
+    }
+
+    [[nodiscard]] std::optional<iterator::value_type> lookup(default_hash module_name) const {
+      return lookup<default_hash>(module_name);
+    }
+
+    [[nodiscard]] std::optional<iterator::value_type> lookup(omni::address base_address) const {
+      auto it = find(base_address);
+      if (it == end()) {
+        return std::nullopt;
+      }
+
+      return *it;
+    }
+
     [[nodiscard]] iterator find_if(std::predicate<typename iterator::value_type> auto predicate) const {
       return std::ranges::find_if(*this, predicate);
     }
@@ -2509,6 +2556,7 @@ namespace omni {
 } // namespace omni
 
 #include <cstdint>
+#include <optional>
 #include <ranges>
 #include <span>
 #include <string_view>
@@ -2708,6 +2756,19 @@ namespace omni {
 
     [[nodiscard]] iterator find(default_hash contract_name) const noexcept {
       return find<default_hash>(contract_name);
+    }
+
+    [[nodiscard]] std::optional<iterator::value_type> lookup(concepts::hash auto contract_name_hash) const noexcept {
+      auto it = find(contract_name_hash);
+      if (it == end()) {
+        return std::nullopt;
+      }
+
+      return *it;
+    }
+
+    [[nodiscard]] std::optional<iterator::value_type> lookup(default_hash contract_name) const noexcept {
+      return lookup<default_hash>(contract_name);
     }
 
     [[nodiscard]] iterator find_if(std::predicate<iterator::value_type> auto pred) const {
