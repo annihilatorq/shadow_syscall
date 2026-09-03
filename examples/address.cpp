@@ -47,9 +47,7 @@ int main() {
     return 1;
   }
 
-  auto image_size = kernel32.image()->get_optional_header()->size_image;
-  auto inside_kernel32 =
-    get_current_process_id.is_in_range(kernel32.base_address(), kernel32.base_address().offset(image_size));
+  auto inside_kernel32 = kernel32.contains(get_current_process_id);
 
   auto process_id = get_current_process_id.invoke<DWORD>();
   auto typed_get_current_process_id = get_current_process_id.as<get_current_process_id_fn>();

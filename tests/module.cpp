@@ -52,6 +52,26 @@ ut::suite<"omni::module"> module_suite = [] {
     expect(executable_module.entry_point() == expected_entry_point);
   };
 
+  "contains accepts addresses inside the image bounds"_test = [] {
+    HMODULE executable_handle = ::GetModuleHandleW(nullptr);
+    omni::module executable_module = tests::get_loaded_module(executable_handle);
+
+    expect(fatal(executable_handle != nullptr));
+    expect(fatal(executable_module.present()));
+
+    auto image_size = executable_module.image()->get_optional_header()->size_image;
+    expect(fatal(image_size > 0U));
+
+    auto image_begin = executable_module.base_address();
+    auto image_end = image_begin.offset(image_size);
+
+    expect(executable_module.contains(image_begin));
+    expect(executable_module.contains(executable_module.entry_point()));
+    expect(executable_module.contains(image_end.offset(-1)));
+    expect(not executable_module.contains(image_begin.offset(-1)));
+    expect(not executable_module.contains(image_end));
+  };
+
   "wname and system_path match the module path from WinAPI"_test = [] {
     HMODULE kernel32_handle = ::GetModuleHandleW(L"kernel32.dll");
     omni::module kernel32_module = tests::get_loaded_module(kernel32_handle);

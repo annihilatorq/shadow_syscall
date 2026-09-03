@@ -50,6 +50,11 @@ namespace omni {
       return assert_entry()->entry_point;
     }
 
+    [[nodiscard]] bool contains(omni::address address) const noexcept {
+      const auto* module_data = assert_entry();
+      return address.is_in_range(module_data->base_address, module_data->base_address.offset(module_data->size_image));
+    }
+
     [[nodiscard]] std::string name() const {
       return assert_entry()->name.string();
     }
