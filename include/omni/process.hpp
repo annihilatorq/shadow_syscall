@@ -89,9 +89,12 @@ namespace omni {
 
       iterator& operator++() noexcept {
         const std::uint32_t offset = current_->next_entry_offset;
-        current_ = offset == 0 ?
-                     nullptr :
-                     reinterpret_cast<const system_process_information*>(reinterpret_cast<const std::byte*>(current_) + offset);
+        if (offset == 0) {
+          current_ = nullptr;
+        } else {
+          const auto* next_location = reinterpret_cast<const std::byte*>(current_) + offset;
+          current_ = reinterpret_cast<const win::system_process_information*>(next_location);
+        }
         return *this;
       }
 
