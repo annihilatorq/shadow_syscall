@@ -3,6 +3,9 @@
 #include <system_error>
 
 #include "omni/detail/config.hpp"
+#ifdef OMNI_HAS_ERROR_STRINGS
+#  include "omni/modules.hpp"
+#endif
 #include "omni/status.hpp"
 
 namespace omni {
@@ -52,7 +55,18 @@ namespace omni {
 
       [[nodiscard]] std::string message([[maybe_unused]] int code) const override {
 #ifdef OMNI_HAS_ERROR_STRINGS
-        // Use RtlNtStatusToDosError with utf8 conversion if required
+        auto rtl_nt_status_to_dos_error =
+          omni::get_export(omni::default_hash{"RtlNtStatusToDosError"}, omni::default_hash{"ntdll.dll"});
+        if (!rtl_nt_status_to_dos_error) {
+          return {};
+        }
+
+        auto dos_error = rtl_nt_status_to_dos_error.address.invoke<std::uint32_t>(static_cast<std::int32_t>(code));
+        if (!dos_error) {
+          return {};
+        }
+
+        return std::system_category().message(static_cast<int>(*dos_error));
 #endif
         return "";
       }
