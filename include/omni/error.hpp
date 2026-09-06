@@ -3,6 +3,7 @@
 #include <system_error>
 
 #include "omni/detail/config.hpp"
+#include "omni/status.hpp"
 
 namespace omni {
 
@@ -39,6 +40,23 @@ namespace omni {
         return "";
       }
     };
+
+    class nt_error_category : public std::error_category {
+     public:
+      [[nodiscard]] const char* name() const noexcept override {
+#ifdef OMNI_HAS_ERROR_STRINGS
+        return "omni.nt_error";
+#endif
+        return std::system_category().name();
+      }
+
+      [[nodiscard]] std::string message([[maybe_unused]] int code) const override {
+#ifdef OMNI_HAS_ERROR_STRINGS
+        // Use RtlNtStatusToDosError with utf8 conversion if required
+#endif
+        return "";
+      }
+    };
   } // namespace detail
 
   [[nodiscard]] inline const std::error_category& error_category() noexcept {
@@ -46,11 +64,20 @@ namespace omni {
     return category;
   }
 
+  [[nodiscard]] inline const std::error_category& nt_error_category() noexcept {
+    static const detail::nt_error_category instance;
+    return instance;
+  }
+
   [[nodiscard]] inline std::error_code make_error_code(omni::error code) noexcept {
     return {static_cast<int>(code), omni::error_category()};
+  }
+
+  [[nodiscard]] inline std::error_code make_error_code(omni::status s) noexcept {
+    return {static_cast<int>(s), omni::nt_error_category()};
   }
 
 } // namespace omni
 
 template <>
-struct std::is_error_code_enum<omni::error> : std::true_type {};
+struct std::is_error_code_enum<omni::error> : std::true_type { };
