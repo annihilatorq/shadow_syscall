@@ -108,7 +108,7 @@ namespace omni {
 
      private:
       friend class processes;
-      explicit iterator(const win::system_process_information* current) noexcept: current_{current} { }
+      explicit iterator(const win::system_process_information* current) noexcept: current_{current} {}
 
       const win::system_process_information* current_{nullptr};
     };

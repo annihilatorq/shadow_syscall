@@ -80,4 +80,4 @@ namespace omni {
 } // namespace omni
 
 template <>
-struct std::is_error_code_enum<omni::error> : std::true_type { };
+struct std::is_error_code_enum<omni::error> : std::true_type {};
