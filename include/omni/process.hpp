@@ -66,10 +66,6 @@ namespace omni {
       return status == omni::ntstatus::info_length_mismatch || status == omni::ntstatus::buffer_too_small;
     }
 
-    [[nodiscard]] inline std::error_code process_status_error(omni::status status) noexcept {
-      return omni::make_error_code(status);
-    }
-
   } // namespace detail
 
   enum class process_access : std::uint32_t {
@@ -115,7 +111,7 @@ namespace omni {
           return std::unexpected(result.error());
         }
         if (!result->is_success()) {
-          return std::unexpected(detail::process_status_error(*result));
+          return std::unexpected(make_error_code(*result));
         }
 
         return omni::unique_handle{handle};
@@ -225,7 +221,7 @@ namespace omni {
           return std::unexpected(sizing_result.error());
         }
         if (!sizing_result->is_success() && !detail::process_query_needs_resize(*sizing_result)) {
-          return std::unexpected(detail::process_status_error(*sizing_result));
+          return std::unexpected(make_error_code(*sizing_result));
         }
 
         std::uint32_t buffer_size = return_length == 0U ? default_buffer_size : return_length;
@@ -242,22 +238,22 @@ namespace omni {
             return processes{std::move(storage)};
           }
           if (!detail::process_query_needs_resize(*result)) {
-            return std::unexpected(detail::process_status_error(*result));
+            return std::unexpected(make_error_code(*result));
           }
 
           storage.reset();
           if (buffer_size > (std::numeric_limits<std::uint32_t>::max)() / 2U) {
-            return std::unexpected(detail::process_status_error(omni::ntstatus::buffer_too_small));
+            return std::unexpected(make_error_code(omni::ntstatus::buffer_too_small));
           }
           buffer_size = (std::max)(return_length, buffer_size * 2U);
         }
 
-        return std::unexpected(detail::process_status_error(omni::ntstatus::info_length_mismatch));
+        return std::unexpected(make_error_code(omni::ntstatus::info_length_mismatch));
 #ifdef OMNI_HAS_EXCEPTIONS
       } catch (const std::bad_alloc&) {
-        return std::unexpected(omni::make_error_code(omni::ntstatus::no_memory));
+        return std::unexpected(make_error_code(omni::ntstatus::no_memory));
       } catch (...) {
-        return std::unexpected(omni::make_error_code(omni::ntstatus::unsuccessful));
+        return std::unexpected(make_error_code(omni::ntstatus::unsuccessful));
       }
 #endif
     }
