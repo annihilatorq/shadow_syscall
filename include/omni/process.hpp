@@ -175,9 +175,11 @@ namespace omni {
 
    private:
     friend class processes;
-    explicit process(const win::system_process_information* info) noexcept: info_(info) {
-      assert(info_ != nullptr);
-    }
+
+    process() noexcept = default;
+    explicit process(const win::system_process_information* info) noexcept: info_(info) {}
+
+    [[nodiscard]] friend bool operator==(const process&, const process&) noexcept = default;
 
     const win::system_process_information* info_;
   };
@@ -194,23 +196,27 @@ namespace omni {
 
       iterator() noexcept = default;
 
-      [[nodiscard]] process operator*() const noexcept {
-        return process{current_};
+      [[nodiscard]] const process& operator*() const noexcept {
+        assert(current_.info_ != nullptr);
+        return current_;
+      }
+
+      [[nodiscard]] const process* operator->() const noexcept {
+        assert(current_.info_ != nullptr);
+        return &current_;
       }
 
       iterator& operator++() noexcept {
-        assert(current_ != nullptr);
-
-        const std::uint32_t offset = current_->next_entry_offset;
+        const std::uint32_t offset = current_.info_->next_entry_offset;
         if (offset == 0) {
-          current_ = nullptr;
+          current_ = process{};
         } else {
-          const auto* next_location = reinterpret_cast<const std::byte*>(current_) + offset;
+          const auto* next_location = reinterpret_cast<const std::byte*>(current_.info_) + offset;
 #if defined(__cpp_lib_start_lifetime_as)
-          current_ = std::start_lifetime_as<win::system_process_information>(next_location);
+          current_.info_ = std::start_lifetime_as<win::system_process_information>(next_location);
 #else
           // Formally UB, but see comment in processes::begin()
-          current_ = reinterpret_cast<const win::system_process_information*>(next_location);
+          current_.info_ = reinterpret_cast<const win::system_process_information*>(next_location);
 #endif
         }
         return *this;
@@ -228,7 +234,7 @@ namespace omni {
       friend class processes;
       explicit iterator(const win::system_process_information* current) noexcept: current_{current} {}
 
-      const win::system_process_information* current_{nullptr};
+      process current_;
     };
 
     static_assert(std::forward_iterator<processes::iterator>);
