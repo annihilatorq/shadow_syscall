@@ -68,8 +68,33 @@ namespace omni {
 
   } // namespace detail
 
+  // https://learn.microsoft.com/windows/win32/procthread/process-security-and-access-rights
   enum class process_access : std::uint32_t {
+    terminate = 0x0001,
+    create_thread = 0x0002,
+    set_session_id = 0x0004,
+    vm_operation = 0x0008,
+    vm_read = 0x0010,
+    vm_write = 0x0020,
+    dup_handle = 0x0040,
+    create_process = 0x0080,
+    set_quota = 0x0100,
+    set_information = 0x0200,
+    query_information = 0x0400,
+    suspend_resume = 0x0800,
     query_limited_information = 0x1000,
+    set_limited_information = 0x2000,
+
+    // `delete` is reserved by C++, this is equivalent of DELETE
+    delete_object = 0x00010000,
+
+    read_control = 0x00020000,
+    write_dac = 0x00040000,
+    write_owner = 0x00080000,
+    synchronize = 0x00100000,
+
+    standard_rights_required = 0x000F0000,
+    all_access = 0x001FFFFF,
   };
 
   [[nodiscard]] constexpr process_access operator|(process_access lhs, process_access rhs) noexcept {
