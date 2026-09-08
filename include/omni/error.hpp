@@ -3,9 +3,7 @@
 #include <system_error>
 
 #include "omni/detail/config.hpp"
-#ifdef OMNI_HAS_ERROR_STRINGS
-#  include "omni/modules.hpp"
-#endif
+#include "omni/modules.hpp"
 #include "omni/status.hpp"
 
 namespace omni {
@@ -61,7 +59,7 @@ namespace omni {
           return {};
         }
 
-        auto dos_error = rtl_nt_status_to_dos_error.address.invoke<std::uint32_t>(static_cast<std::int32_t>(code));
+        auto dos_error = rtl_nt_status_to_dos_error.address.invoke<std::uint32_t>(code);
         if (!dos_error) {
           return {};
         }
@@ -69,6 +67,21 @@ namespace omni {
         return std::system_category().message(static_cast<int>(*dos_error));
 #endif
         return "";
+      }
+
+      [[nodiscard]] std::error_condition default_error_condition(int code) const noexcept override {
+        auto rtl_nt_status_to_dos_error =
+          omni::get_export(omni::default_hash{"RtlNtStatusToDosError"}, omni::default_hash{"ntdll.dll"});
+        if (!rtl_nt_status_to_dos_error) {
+          return {};
+        }
+
+        auto dos_error = rtl_nt_status_to_dos_error.address.invoke<std::uint32_t>(code);
+        if (!dos_error) {
+          return {};
+        }
+
+        return std::system_category().default_error_condition(static_cast<int>(*dos_error));
       }
     };
   } // namespace detail
