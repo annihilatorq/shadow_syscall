@@ -14,14 +14,14 @@
 #include "omni/process.hpp"
 #include "test_utils.hpp"
 
-using access = omni::process_access;
+using omni::process_access;
 
 namespace {
 
   // NOLINTNEXTLINE
-  static_assert((access::vm_read | access::vm_read) == access::vm_read);
-  static_assert(((access::vm_read | access{0x1}) & access::vm_read) == access::vm_read);
-  static_assert(std::to_underlying(access::vm_read | omni::process_access{0x1}) == 0x0011U);
+  static_assert((process_access::vm_read | process_access::vm_read) == process_access::vm_read);
+  static_assert(((process_access::vm_read | process_access{0x1}) & process_access::vm_read) == process_access::vm_read);
+  static_assert(std::to_underlying(process_access::vm_read | process_access{0x1}) == 0x0011U);
 
   [[nodiscard]] std::optional<omni::process> find_process(const omni::processes& snapshot, std::uint32_t pid) noexcept {
     const auto it = std::ranges::find_if(snapshot, [pid](const omni::process& p) { return p.id() == pid; });
