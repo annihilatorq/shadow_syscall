@@ -3,6 +3,8 @@
 #include <system_error>
 
 #include "omni/detail/config.hpp"
+#include "omni/modules.hpp"
+#include "omni/status.hpp"
 
 namespace omni {
 
@@ -39,6 +41,49 @@ namespace omni {
         return "";
       }
     };
+
+    class nt_error_category : public std::error_category {
+     public:
+      [[nodiscard]] const char* name() const noexcept override {
+#ifdef OMNI_HAS_ERROR_STRINGS
+        return "omni.nt_error";
+#endif
+        return std::system_category().name();
+      }
+
+      [[nodiscard]] std::string message([[maybe_unused]] int code) const override {
+#ifdef OMNI_HAS_ERROR_STRINGS
+        auto rtl_nt_status_to_dos_error =
+          omni::get_export(omni::default_hash{"RtlNtStatusToDosError"}, omni::default_hash{"ntdll.dll"});
+        if (!rtl_nt_status_to_dos_error) {
+          return {};
+        }
+
+        auto dos_error = rtl_nt_status_to_dos_error.address.invoke<std::uint32_t>(code);
+        if (!dos_error) {
+          return {};
+        }
+
+        return std::system_category().message(static_cast<int>(*dos_error));
+#endif
+        return "";
+      }
+
+      [[nodiscard]] std::error_condition default_error_condition(int code) const noexcept override {
+        auto rtl_nt_status_to_dos_error =
+          omni::get_export(omni::default_hash{"RtlNtStatusToDosError"}, omni::default_hash{"ntdll.dll"});
+        if (!rtl_nt_status_to_dos_error) {
+          return {};
+        }
+
+        auto dos_error = rtl_nt_status_to_dos_error.address.invoke<std::uint32_t>(code);
+        if (!dos_error) {
+          return {};
+        }
+
+        return std::system_category().default_error_condition(static_cast<int>(*dos_error));
+      }
+    };
   } // namespace detail
 
   [[nodiscard]] inline const std::error_category& error_category() noexcept {
@@ -46,8 +91,17 @@ namespace omni {
     return category;
   }
 
+  [[nodiscard]] inline const std::error_category& nt_error_category() noexcept {
+    static const detail::nt_error_category instance;
+    return instance;
+  }
+
   [[nodiscard]] inline std::error_code make_error_code(omni::error code) noexcept {
     return {static_cast<int>(code), omni::error_category()};
+  }
+
+  [[nodiscard]] inline std::error_code make_error_code(omni::status s) noexcept {
+    return {static_cast<int>(s), omni::nt_error_category()};
   }
 
 } // namespace omni
