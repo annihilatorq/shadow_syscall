@@ -62,7 +62,7 @@ namespace omni {
     using process_open_caller = omni::lazy_importer<open_process_fn>;
 #endif
 
-    [[nodiscard]] inline bool process_query_needs_resize(omni::status status) noexcept {
+    [[nodiscard]] inline bool buffer_too_small(omni::status status) noexcept {
       return status == omni::ntstatus::info_length_mismatch || status == omni::ntstatus::buffer_too_small;
     }
 
@@ -199,6 +199,8 @@ namespace omni {
       }
 
       iterator& operator++() noexcept {
+        assert(current_ != nullptr);
+
         const std::uint32_t offset = current_->next_entry_offset;
         if (offset == 0) {
           current_ = nullptr;
@@ -239,30 +241,36 @@ namespace omni {
         detail::process_query_caller query_system_information{"NtQuerySystemInformation"};
 
         constexpr std::size_t max_attempts = 8;
-        constexpr std::uint32_t default_buffer_size = 64U * 1024U;
-        std::uint32_t return_length{};
-        auto sizing_result = query_system_information.try_invoke(5U, nullptr, 0U, &return_length);
+
+        std::uint32_t required_size{};
+        auto sizing_result = query_system_information.try_invoke(5U, nullptr, 0U, &required_size);
         if (!sizing_result) {
           return std::unexpected(sizing_result.error());
         }
-        if (!sizing_result->is_success() && !detail::process_query_needs_resize(*sizing_result)) {
+        if (!sizing_result->is_success() && !detail::buffer_too_small(*sizing_result)) {
           return std::unexpected(make_error_code(*sizing_result));
         }
 
-        std::uint32_t buffer_size = return_length == 0U ? default_buffer_size : return_length;
-        buffer storage;
+        // There is a high probability that a new process was spawned between
+        // the call to `NtQuerySystemInformation` and the execution of this
+        // code, which is why the first attempt will almost always return an
+        // `info_length_mismatch` error. Allocate memory with a margin
+        constexpr std::uint32_t allocation_margin = 64U * 1024U;
+        std::uint32_t buffer_size = required_size + allocation_margin;
 
-        for (std::size_t attempt = 1; attempt < max_attempts; ++attempt) {
+        buffer_ptr storage;
+
+        for (std::size_t attempt{}; attempt < max_attempts; ++attempt) {
           storage.reset(allocator.allocate(buffer_size));
-          return_length = 0U;
-          auto result = query_system_information.try_invoke(5U, storage.get(), buffer_size, &return_length);
+          required_size = 0U;
+          auto result = query_system_information.try_invoke(5U, storage.get(), buffer_size, &required_size);
           if (!result) {
             return std::unexpected(result.error());
           }
           if (result->is_success()) {
             return processes{std::move(storage)};
           }
-          if (!detail::process_query_needs_resize(*result)) {
+          if (!detail::buffer_too_small(*result)) {
             return std::unexpected(make_error_code(*result));
           }
 
@@ -270,7 +278,7 @@ namespace omni {
           if (buffer_size > (std::numeric_limits<std::uint32_t>::max)() / 2U) {
             return std::unexpected(make_error_code(omni::ntstatus::buffer_too_small));
           }
-          buffer_size = (std::max)(return_length, buffer_size * 2U);
+          buffer_size = (std::max)(required_size, buffer_size * 2U);
         }
 
         return std::unexpected(make_error_code(omni::ntstatus::info_length_mismatch));
@@ -302,8 +310,8 @@ namespace omni {
       // was never created at the address storage_.get(). However, this is
       // merely a formality, and in practice, all mainstream compilers
       // support this behavior because users need, for example, to be able to
-      // read from network socket and other buffers owned by the OS and then
-      // perform a `reinterpret_cast` on memory owned by the OS
+      // read memory buffers owned by the OS, and then reinterpret_cast the
+      // underlying data
       return iterator{reinterpret_cast<const win::system_process_information*>(storage_.get())};
 #endif
     }
@@ -322,11 +330,11 @@ namespace omni {
         allocator.deallocate(p, 0);
       }
     };
-    using buffer = std::unique_ptr<std::byte, virtual_free>;
+    using buffer_ptr = std::unique_ptr<std::byte, virtual_free>;
 
-    explicit processes(buffer storage) noexcept: storage_(std::move(storage)) {}
+    explicit processes(buffer_ptr storage) noexcept: storage_(std::move(storage)) {}
 
-    buffer storage_;
+    buffer_ptr storage_;
   };
 
   static_assert(std::ranges::forward_range<processes>);
